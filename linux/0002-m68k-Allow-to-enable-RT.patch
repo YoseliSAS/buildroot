@@ -1,0 +1,27 @@
+From 992ce6c62a07ddb344d7df37c3f5d7a123c8b159 Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Tue, 16 Apr 2024 17:25:03 +0200
+Subject: [PATCH] m68k: Allow to enable RT
+
+Allow to select RT.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ arch/m68k/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index 1fe5b2018745..b01e62df3ee0 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -13,6 +13,7 @@ config M68K
+ 	select ARCH_NO_PREEMPT if !COLDFIRE
+ 	select ARCH_USE_MEMTEST if MMU_MOTOROLA
+ 	select ARCH_WANT_IPC_PARSE_VERSION
++	select ARCH_SUPPORTS_RT
+ 	select BINFMT_FLAT_ARGVP_ENVP_ON_STACK
+ 	select DMA_DIRECT_REMAP if HAS_DMA && MMU && !COLDFIRE
+ 	select GENERIC_ATOMIC64
+-- 
+2.40.1
+
