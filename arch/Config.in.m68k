@@ -47,7 +47,7 @@ config BR2_GCC_TARGET_CPU
 	default "54455"		if BR2_m68k_cf5441x
 
 config BR2_GCC_TARGET_ARCH
-	default "cf"            if BR2_m68k_cf5441x
+	default "isac"		if BR2_m68k_cf5441x
 
 config BR2_READELF_ARCH_NAME
 	default "MC68000"
