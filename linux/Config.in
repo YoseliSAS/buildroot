@@ -224,7 +224,8 @@ config BR2_LINUX_KERNEL_UIMAGE
 	depends on BR2_arc || BR2_arm || BR2_armeb || \
 		   BR2_powerpc || BR2_powerpc64 || BR2_powerpc64le || \
 		   BR2_sh || BR2_mips || BR2_mipsel || \
-		   BR2_mips64 || BR2_mips64el || BR2_xtensa
+		   BR2_mips64 || BR2_mips64el || BR2_xtensa || \
+		   BR2_m68k
 	select BR2_PACKAGE_HOST_UBOOT_TOOLS
 
 config BR2_LINUX_KERNEL_APPENDED_UIMAGE
