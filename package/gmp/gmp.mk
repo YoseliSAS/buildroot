@@ -33,5 +33,11 @@ else
 GMP_CONF_OPTS += --disable-cxx
 endif
 
+# relocation truncated to fit: R_68K_GOT16O
+ifeq ($(BR2_m68k_cf),y)
+GMP_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -mxgot -shared"
+GMP_CONF_ENV += CXXFLAGS="$(TARGET_CXXFLAGS) -mxgot -shared"
+endif
+
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))
