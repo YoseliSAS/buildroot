@@ -341,7 +341,7 @@ config BR2_LINUX_KERNEL_ZSTD
 
 config BR2_LINUX_KERNEL_UNCOMPRESSED
 	bool "uncompressed"
-	depends on BR2_s390x
+	depends on BR2_s390x || BR2_m68k_cf5441x
 
 endchoice
 
