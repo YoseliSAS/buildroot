@@ -233,6 +233,12 @@ endef
 GDB_POST_INSTALL_TARGET_HOOKS += GDB_REMOVE_UNNEEDED_FILES
 endif
 
+# relocation truncated to fit: R_68K_GOT16O
+ifeq ($(BR2_m68k_cf),y)
+GDB_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -mxgot -shared --unresolved-symbols=ignore-all"
+GDB_CONF_ENV += CXXFLAGS="$(TARGET_CXXFLAGS) -mxgot -shared --unresolved-symbols=ignore-all"
+endif
+
 # This installs the gdbserver somewhere into the $(HOST_DIR) so that
 # it becomes an integral part of the SDK, if the toolchain generated
 # by Buildroot is later used as an external toolchain. We install it
