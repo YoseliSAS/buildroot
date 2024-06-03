@@ -1,0 +1,44 @@
+# See package/makedevs/README for details
+#
+# This device table is used to assign proper ownership and permissions
+# on various files. It doesn't create any device file, as it is used
+# in both static device configurations (where /dev/ is static) and in
+# dynamic configurations (where devtmpfs, mdev or udev are used).
+#
+# <name>				<type>	<mode>	<uid>	<gid>	<major>	<minor>	<start>	<inc>	<count>
+/dev					d	755	0	0	-	-	-	-	-
+/tmp					d	1777	0	0	-	-	-	-	-
+/etc					d	755	0	0	-	-	-	-	-
+/home/default				d	755	1000	1000	-	-	-	-	-
+/var/www				d	755	33	33	-	-	-	-	-
+/etc/hosts				f	664	0	0	-	-	-	-	-
+/etc/shadow				f	660	0	0	-	-	-	-	-
+#/etc/init.d/S50sshd				f	750	0	0	-	-	-	-	-
+#/etc/ssh/ssh_host_rsa_key				f	600	0	0	-	-	-	-	-
+/etc/passwd				f	644	0	0	-	-	-	-	-
+/etc/network/if-up.d			d	755	0	0	-	-	-	-	-
+/etc/network/if-pre-up.d		d	755	0	0	-	-	-	-	-
+/etc/network/if-post-up.d		d	755	0	0	-	-	-	-	-
+/etc/network/if-down.d			d	755	0	0	-	-	-	-	-
+/etc/network/if-pre-down.d		d	755	0	0	-	-	-	-	-
+/etc/network/if-post-down.d		d	755	0	0	-	-	-	-	-
+/etc/pam.d		d	770	0	0	-	-	-	-	-
+/etc/pam.d/other		f	440	0	0	-	-	-	-	-
+#/etc/pam.d/common-auth		f	660	0	0	-	-	-	-	-
+/etc/pam.d/login		f	440	0	0	-	-	-	-	-
+#/etc/pam.d/pure-ftpd		f	440	0	0	-	-	-	-	-
+#/etc/pam.d/sshd		f	660	0	0	-	-	-	-	-
+#/etc/init.d/S50sshd		f	744	0	0	-	-	-	-	-
+#/etc/init.d/S92display_bank_status		f	744	0	0	-	-	-	-	-
+/usr/DLC2ng				d	755	1101	1003	-	-	-	-	-
+/usr/DLC2ng/flm				d	750	1101	1003	-	-	-	-	-
+/usr/DLC2ng/init.d				d	750	1101	1003	-	-	-	-	-
+/usr/DLC2ng/scripts				d	750	1101	1003	-	-	-	-	-
+/usr/DLC2ng/sound				d	750	1101	1003	-	-	-	-	-
+/usr/html				d	740	33	33	-	-	-	-	-
+/usr/updater				d	750	1104	1003	-	-	-	-	-
+/usr/security				d	750	1103	1005	-	-	-	-	-
+/usr/network				d	750	1100	1002	-	-	-	-	-
+#/usr/sbin/bank-admin			f	770	0	0	-	-	-	-	-
+#/usr/sbin/qm_ctrl			f	770	0	0	-	-	-	-	-
+#/usr/sbin/xxd			f	770	0	0	-	-	-	-	-
