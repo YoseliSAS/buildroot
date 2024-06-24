@@ -15,6 +15,8 @@ echo "post-image.sh $@"
 output_dir=$1
 config_file=$2
 
+#loadaddr="0x40020000"
+#entryaddr="0x40020000"
 loadaddr="0x41000000"
 entryaddr="0x41002000"
 

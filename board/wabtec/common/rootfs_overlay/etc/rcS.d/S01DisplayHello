@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo "Hello world !"
+
+/bin/mkdir -p /dev/pts /dev/shm
+/bin/mount -a

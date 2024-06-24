@@ -61,5 +61,9 @@ ifeq ($(BR2_TOOLCHAIN_HAS_GCC_BUG_104028),y)
 LIBPCAP_CFLAGS += -O2
 endif
 
+ifeq ($(BR2_m68k_cf),y)
+LIBPCAP_CFLAGS += -mxgot -mlong-jump-table-offsets
+endif
+
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

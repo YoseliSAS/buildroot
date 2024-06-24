@@ -1,0 +1,45 @@
+#! /bin/sh
+#
+# mountvolatile	This script remounts (in bind mode) some folders like /etc
+#               to make them writable but non-persistent.
+#
+# Version:	2014-08-24  sebastien.matz@eurogiciel.fr
+#
+
+FOLDERS="/etc:/var"
+VOLATILE="/volatile"
+
+echo "Entering $0"
+
+[ -d $VOLATILE ] || exit 0
+
+
+case "$1" in
+	start|"")
+	        echo "Making following folders writable but non-persistent (see /volatile):"
+	        for n in `echo $FOLDERS | tr ":" " "`
+		do
+		    echo -n " $n"
+		    bn=$(basename $n)
+		    if [ -d $VOLATILE/$bn ]
+		    then
+			echo " failed, keep going. ($VOLATILE/$bn already exists)"
+		    else
+			if mountpoint -q $n
+			then
+			    echo " failed, keep going. ($n is already a mountpoint)"
+			else
+			    cp -r --preserve=mode,ownership $n $VOLATILE
+			    mount -o bind $VOLATILE/$bn $n
+			    echo " ."
+			fi
+		    fi
+		done
+		;;
+	stop)
+		;;
+	*)
+		echo "Usage: mountvolatile {start|stop}" >&2
+		exit 1
+		;;
+esac

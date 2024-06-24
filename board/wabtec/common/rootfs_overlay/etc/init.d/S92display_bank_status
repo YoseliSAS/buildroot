@@ -1,0 +1,16 @@
+#! /bin/sh
+#
+# display_bank_status	This script display the current bank
+#
+# Version:	       2014-09-22  sebastien.matz@eurogiciel.fr
+#
+
+case "$1" in
+	start|"")
+	        /usr/sbin/bank-admin
+		;;
+	*)
+		echo "Usage: display_bank_status {start}" >&2
+		exit 1
+		;;
+esac

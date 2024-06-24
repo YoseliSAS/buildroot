@@ -1,0 +1,33 @@
+#! /bin/sh
+#
+# mountdata	This script mount the /data partition.
+#		This partition is not referenced in /etc/fstab, too
+#		match better performances at boot time.
+#
+# Version:	30-Jun-2014  yannick.gicquel@open.eurogiciel.org
+#
+
+[ -d /data ] || exit 0
+#. /etc/default/rcS
+
+case "$1" in
+	start|"")
+		if [ "$VERBOSE" != no ]
+		then
+			echo -n "Mount /data partition... "
+		fi
+		/bin/mount -t jffs2 -o rw,noatime \
+			/dev/mtdblock6 /data || { echo "failed." ; exit 1; }
+
+		[ "$VERBOSE" != no ] && echo "done."
+		;;
+	stop)
+		[ "$VERBOSE" != no ] && echo -n "Umount /data partition... "
+		/bin/umount /data
+		[ "$VERBOSE" != no ] && echo "done."
+		;;
+	*)
+		echo "Usage: mountdata {start|stop}" >&2
+		exit 1
+		;;
+esac
