@@ -91,6 +91,6 @@ fi
 echo "Generating CRC16 checksum files"
 rm -f "$output_dir"/*.crc16
 rm -f "$output_dir"/*.crc32
-python ${basedir}/crc16.py -w "${output_dir}/*"
+python3 ${basedir}/crc16.py -w "${output_dir}/*"
 echo "Generating CRC32 checksum files for uImage"
 ${basedir}/mkCrc32.sh "$output_dir"
