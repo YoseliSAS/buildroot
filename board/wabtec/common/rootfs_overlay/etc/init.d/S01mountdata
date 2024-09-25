@@ -1,0 +1,93 @@
+#!/bin/sh
+
+echo "Entering $0"
+
+# Define partitions and other variables (if needed, extend FOLDERS for multiple partitions)
+FOLDERS="/data"
+
+# Function to attach, format, and mount UBI volume
+mount_data_partition() {
+	# Find the MTD partition for "data"
+	MTD_PART=$(grep '"data"' /proc/mtd | awk -F: '{print $1}')
+
+	if [ -z "$MTD_PART" ]; then
+		echo "Error: Data partition not found!" >&2
+		exit 1
+	fi
+
+	# Attempt to attach the UBI volume
+	if ! ubiattach /dev/ubi_ctrl -m ${MTD_PART#mtd}; then
+		echo "ubiattach failed, attempting to format the partition"
+
+		# Format the MTD partition
+		if ! ubiformat /dev/${MTD_PART} -y; then
+		    echo "Error: Failed to format the MTD partition!" >&2
+		    exit 1
+		fi
+
+		# Create a new UBI volume
+		if ! ubimkvol /dev/ubi0 -N data -s 128MiB; then
+		    echo "Error: Failed to create UBI volume!" >&2
+		    exit 1
+		fi
+
+		# Create the UBIFS filesystem
+		if ! mkfs.ubifs -r /data -e 0x1f000 -c 2048 -m 0x800 /dev/ubi0_0; then
+		    echo "Error: Failed to create UBIFS filesystem!" >&2
+		    exit 1
+		fi
+	else
+		echo "UBI volume attached successfully"
+	fi
+
+	# Mount the UBIFS filesystem
+	mount -t ubifs ubi0:data /data
+
+	if [ $? -ne 0 ]; then
+	    echo "Error: Failed to mount UBIFS filesystem!" >&2
+	    exit 1
+	else
+	    echo "/data mounted successfully"
+	fi
+}
+
+unmount_data_partition() {
+    echo "Unmounting /data..."
+
+    # Attempt to unmount /data
+    umount /data
+    if [ $? -ne 0 ]; then
+        echo "Failed to unmount /data" >&2
+        exit 1  # Exit with a non-zero status for failure
+    fi
+
+    echo "/data unmounted"
+    ubidetach -m ${MTD_PART#mtd}
+}
+
+case "$1" in
+    start|"")
+        echo "Starting mount process for $FOLDERS"
+        for n in $FOLDERS
+        do
+            echo "Processing $n"
+            if mountpoint -q $n; then
+                echo "$n is already a mountpoint, skipping."
+            else
+                mount_data_partition
+            fi
+        done
+        ;;
+    stop)
+        echo "Stopping, unmounting $FOLDERS"
+        for n in $FOLDERS
+        do
+            unmount_data_partition
+        done
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}" >&2
+        exit 1
+        ;;
+esac
+
