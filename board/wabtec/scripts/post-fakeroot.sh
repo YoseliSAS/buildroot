@@ -17,3 +17,6 @@ mv "${TARGET_DIR}/etc/init.d/S01rsyslogd" "${TARGET_DIR}/etc/init.d/S10rsyslogd"
 
 # Change the permissions for ssh key
 chmod 600 "${TARGET_DIR}/etc/ssh/ssh_host_rsa_key"
+
+mkdir -p "${TARGET_DIR}/usr/DLC2ng"
+mkdir -p "${TARGET_DIR}/usr/network"
