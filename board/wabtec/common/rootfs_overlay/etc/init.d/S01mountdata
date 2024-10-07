@@ -60,7 +60,7 @@ mount_data_partition() {
 	fi
 
 	# Check if the partition is UBI formatted
-	# nanddump -n -q -l 5 /dev/mtd6 |xxd                                                                                                                                                                                                
+	# nanddump -n -q -l 5 /dev/mtd6 |xxd
 	# 00000000: 5542 4923 01                             UBI#.
 
 	header=$(nanddump -n -q -l 3 /dev/${MTD_PART} | xxd | awk '{print $4}')
