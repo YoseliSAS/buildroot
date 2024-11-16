@@ -16,7 +16,7 @@ ip link set dev eth0 up
 dhclient eth0
 telnetd
 
-chrt -f -p 92 95
-chrt -r -p 99 99
-chrt -f -p 98 112
-chrt -f -p 97 113
+chrt -f -p 89 87
+chrt -f -p 99 88
+chrt -f -p 98 99
+chrt -f -p 97 100
