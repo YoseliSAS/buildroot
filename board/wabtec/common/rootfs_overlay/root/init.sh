@@ -15,8 +15,3 @@ gpioset -m signal -b gpiochip0 46=1
 ip link set dev eth0 up
 dhclient eth0
 telnetd
-
-chrt -f -p 89 87
-chrt -f -p 99 88
-chrt -f -p 98 99
-chrt -f -p 97 100
