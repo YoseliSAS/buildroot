@@ -24,15 +24,12 @@ set_priority() {
 
 # Apply priorities
 set_priority 99 "irq/178-UART"
-set_priority 92 "irq/92-UART"
-set_priority 93 "eDMA-6"
-set_priority 93 "eDMA-7"
-set_priority 98 "irq/182-dspi-sl"
-set_priority 98 "eDMA-14"
-set_priority 98 "eDMA-15"
+set_priority 98 "irq/68-s2tos0"
+set_priority 97 "eDMA-14"
+set_priority 96 "eDMA-15"
+set_priority 94 "eDMA-7"
 set_priority 40 "irq/100-enet"
 set_priority 40 "irq/104-enet"
-set_priority 96 "irq/68-s2tos0"
 set_priority 30 "ubifs_bgt0_0"
 set_priority 30 "ubi_bgt0d"
 
