@@ -1,0 +1,15 @@
+www-data 33 www-data 33 * /usr/html /sbin/nologin shadow HTTP user account
+upload 65533 ftp 83 =upload /data/ftp/upload /sbin/nologin - Upload FTP account
+download 65532 ftp 83 =download /data/ftp/download /sbin/nologin - Download FTP account
+FaiveleyEng 1001 dlc2ng 1003 =dhs03987 /usr/DLC2ng /bin/sh ftp Faiveley administrator
+shadowMng 1002 shadow 1007 * - - - shadow file manager
+ProdAdmin 1010 webmonext 1001 != - - - WebMonext User
+ServEng 1011 webmonext 1001 != - - - WebMonext User
+Maintainer 1012 webmonext 1001 != - - - WebMonext User
+ProdEng 1013 webmonext 1001 != - - - WebMonext User
+network 1100 network 1002 * /usr/network /bin/sh - Train Network service
+dlc2ng 1101 dlc2ng 1003 * /usr/DLC2ng /bin/sh - Main DLC2ng services
+webservice 1102 webservices 1004 * - /bin/sh network Web services
+security 1103 security 1005 * /data/security /bin/sh root,ftp,shadow Security management service
+installer 1104 dlc2ng 1003 * /usr/updater /bin/sh root,ftp SW installer service
+systemLog 1105 systemlog 1006 * /data/var/log /bin/sh - system log service
