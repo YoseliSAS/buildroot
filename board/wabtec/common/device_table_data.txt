@@ -1,0 +1,11 @@
+# This device table is dedicated to skeleton_data_ubifs file permissions
+# attributes.
+#
+# See device_table.txt for details
+#
+# <name>				<type>	<mode>	<uid>	<gid>	<major>	<minor>	<start>	<inc>	<count>
+/root					d	700	0	0	-	-	-	-	-
+/ftp					d	755	0	0	-	-	-	-	-
+/ftp/upload				d	750	65534	83	-	-	-	-	-
+/ftp/download				d	770	65533	83	-	-	-	-	-
+/log					d	770	0	0	-	-	-	-	-
