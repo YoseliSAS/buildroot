@@ -4,14 +4,16 @@
 #RT_RUNTIME_FILE="/proc/sys/kernel/sched_rt_runtime_us"
 #echo 950000 > "$RT_RUNTIME_FILE"
 
+ps_out=$(ps)
+
 # Function to set priorities for processes
 set_priority() {
     local priority=$1
     local pattern=$2
 
     # Find PIDs matching the pattern
-    pids=$(ps | grep -E "$pattern" | grep -v "grep" | awk '{print $1}')
-    
+    pids=$(echo "$ps_out" | grep -E "$pattern" | grep -v "grep" | awk '{print $1}')
+
     if [ -n "$pids" ]; then
         for pid in $pids; do
             echo "Setting priority $priority for PID $pid ($pattern)"
