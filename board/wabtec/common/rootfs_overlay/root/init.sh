@@ -9,8 +9,9 @@
 /bin/ln -sf /proc/self/fd/1 /dev/stdout 2>/dev/null
 /bin/ln -sf /proc/self/fd/2 /dev/stderr 2>/dev/null
 /bin/hostname -F /etc/hostname
-/etc/init.d/S01mountdata start
-/etc/init.d/S08mountvolatile start
+/bin/bash /etc/init.d/S01mountdata start
+/bin/bash /etc/init.d/S08mountvolatile start
+/bin/bash /etc/init.d/S10rsyslogd start
 gpioset -m signal -b gpiochip0 46=1
 ip link set dev eth0 up
 dhclient eth0
