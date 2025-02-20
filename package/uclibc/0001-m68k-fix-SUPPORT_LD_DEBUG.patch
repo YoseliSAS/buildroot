@@ -1,0 +1,13 @@
+diff --git a/ldso/ldso/m68k/elfinterp.c b/ldso/ldso/m68k/elfinterp.c
+index 25ea23067..1536bd5b2 100644
+--- a/ldso/ldso/m68k/elfinterp.c
++++ b/ldso/ldso/m68k/elfinterp.c
+@@ -193,7 +193,7 @@ _dl_do_reloc(struct elf_resolve *tpnt, struct r_scope_elem *scope,
+ #endif
+ 
+ #if defined (__SUPPORT_LD_DEBUG__)
+-	old_val = *reloc_addr;
++	old_val = reloc_addr ? *reloc_addr : 0;
+ #endif
+ 
+ 	switch (reloc_type) {
