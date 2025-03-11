@@ -11,7 +11,7 @@
 /bin/hostname -F /etc/hostname
 /bin/bash /etc/init.d/S01mountdata start
 /bin/bash /etc/init.d/S08mountvolatile start
-/bin/bash /etc/init.d/S10rsyslogd start
+#/bin/bash /etc/init.d/S10rsyslogd start
 gpioset -m signal -b gpiochip0 46=1
 ip link set dev eth0 up
 dhclient eth0

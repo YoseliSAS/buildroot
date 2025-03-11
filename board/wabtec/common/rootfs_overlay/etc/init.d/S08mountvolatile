@@ -1,45 +1,62 @@
-#! /bin/sh
+#! /bin/bash
 #
 # mountvolatile	This script remounts (in bind mode) some folders like /etc
 #               to make them writable but non-persistent.
 #
-# Version:	2014-08-24  sebastien.matz@eurogiciel.fr
-#
 
-FOLDERS="/etc:/var:/run"
+FOLDERS="/etc(nosuid,nodev):/var(nosuid,nodev):/home(nosuid,nodev):/run(nosuid,nodev)"
 VOLATILE="/volatile"
+SCRIPTNAME=$(basename -- "$0")
 
-echo "Entering $0"
-
-[ -d $VOLATILE ] || exit 0
-
+[ -d "$VOLATILE" ] || exit 0
 
 case "$1" in
-	start|"")
-	        echo "Making following folders writable but non-persistent (see /volatile):"
-	        for n in `echo $FOLDERS | tr ":" " "`
-		do
-		    echo -n " $n"
-		    bn=$(basename $n)
-		    if [ -d $VOLATILE/$bn ]
-		    then
-			echo " failed, keep going. ($VOLATILE/$bn already exists)"
-		    else
-			if mountpoint -q $n
-			then
-			    echo " failed, keep going. ($n is already a mountpoint)"
-			else
-			    cp -r --preserve=mode,ownership $n $VOLATILE
-			    mount -o bind $VOLATILE/$bn $n
-			    echo " ."
-			fi
-		    fi
-		done
-		;;
-	stop)
-		;;
-	*)
-		echo "Usage: mountvolatile {start|stop}" >&2
-		exit 1
-		;;
+    start|"")
+        echo "Making the following folders writable but non-persistent (using OverlayFS):"
+        IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
+
+        for entry in "${FOLDERS_ARRAY[@]}"; do  
+            folder="${entry%%(*}"                          # Extraction du chemin du dossier
+            options="${entry#*(}" options="${options%)}"   # Extraction des options
+
+            echo -n "$SCRIPTNAME folder: $folder..."
+
+            bfolder="${folder##*/}"
+            upperdir="$VOLATILE/${bfolder}_upper"
+            workdir="$VOLATILE/${bfolder}_work"
+
+            if mountpoint -q "$folder"; then
+                echo " failed, keep going. ($folder is already a mountpoint)"
+                continue
+            fi
+
+            mkdir -p "$upperdir" "$workdir"
+            mount_opts="lowerdir=$folder,upperdir=$upperdir,workdir=$workdir"
+
+            # Ajouter les options de sécurité si elles existent
+            [[ -n "$options" && "$options" != "$folder" ]] && mount_opts="$mount_opts,$options"
+
+            mount -t overlay overlay -o "$mount_opts" "$folder"
+
+            if [ $? -eq 0 ]; then
+                echo " done"
+            else
+                echo " failed"
+            fi
+        done
+        ;;
+    stop)
+        echo "Unmounting OverlayFS mounts..."
+        IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
+        for entry in "${FOLDERS_ARRAY[@]}"; do
+            folder="${entry%%(*}"
+            if mountpoint -q "$folder"; then
+                umount "$folder" && echo "$folder unmounted."
+            fi
+        done
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME {start|stop}" >&2
+        exit 1
+        ;;
 esac

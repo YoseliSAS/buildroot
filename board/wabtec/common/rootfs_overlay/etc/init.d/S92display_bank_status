@@ -1,0 +1,141 @@
+#!/bin/bash
+#===============================================================================================# 
+#              FAIVELEY TRANSPORT               | No APS.....: D14203                           # 
+#          www.faiveleytransport.com            | Project....: DLC2ng		                	# 
+#           Hall Parc - Batiment 6A             | Customer...: All		                		# 
+#            3,rue du 19 mars 1962              | System.....: Door controller                  # 
+#         92230  Gennevilliers FRANCE           | Sub System.: Daughter board                   # 
+#===============================================================================================# 
+#    Date    | Name | Rev. | Comments															#
+#------------+------+------+--------------------------------------------------------------------#
+# 09/09/2015 | STB  | A0   | First release														#
+#------------+------+------+--------------------------------------------------------------------#
+#            |      |      |																	#
+#------------+------+------+--------------------------------------------------------------------#
+#            |      |      |																	#
+#===============================================================================================# 
+#
+# display_bank_status	This script display and confirm the current bank
+#
+: "${UPDATER_HOME:=/usr/updater}"
+
+# Export variable to the installers
+export UPDATER_HOME
+
+# Add & export path to the binaries, scripts and installers
+# Use the local libraries first in order to be consistent with the version of the updater package
+export PATH=:${UPDATER_HOME}/lib/bash:${UPDATER_HOME}/installers${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=${UPDATER_HOME}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+#-----------------------------------------------------------------------------
+# Parameters
+#-----------------------------------------------------------------------------
+#BANK1_MTD_KERNEL_BLOCK="/dev/mtdblock1"
+#BANK1_MTD_KERNEL_SIZE=15728640
+BANK1_MTD_BLOCK="/dev/mtdblock2"
+#BANK1_MTD_SIZE=67108864
+
+#BANK2_MTD_KERNEL_BLOCK="/dev/mtdblock4"
+#BANK2_MTD_KERNEL_SIZE=15728640
+BANK2_MTD_BLOCK="/dev/mtdblock5"
+#BANK2_MTD_SIZE=67108864
+
+#-----------------------------------------------------------------------------
+# Variables
+#-----------------------------------------------------------------------------
+DOUBLE_BANKING_STATUS=""
+CURRENT_BANK=""
+BANK1_STATUS=""
+BANK2_STATUS=""
+
+currentKernelCrc16=""
+currentRootfsCrc16=""
+
+#-----------------------------------------------------------------------------
+# Toolkit import
+#-----------------------------------------------------------------------------
+
+# Load toolkit
+source bash_toolkit.bash
+function confirm_bank() {
+  bank_num="$1"
+  btk_print "Double banking> We are using bank $bank_num."
+  if [ "$bank_num" == "1" ]
+  then
+    current_bank_status=$BANK1_STATUS
+    other_bank_status=$BANK2_STATUS
+    other_bank_num="2"
+  elif [ "$bank_num" == "2" ]
+  then
+    current_bank_status=$BANK2_STATUS
+    other_bank_status=$BANK1_STATUS
+    other_bank_num="1"
+  else
+    btk_error "Double banking state error ! ($DOUBLE_BANKING_STATUS)"	
+  fi
+  
+  # Check if current Bank status is not confirmed
+  if [ "$current_bank_status" != "confirmed" ]
+  then
+    # ! Bank confirmation set the other bank to "blank"
+    # blank test shall be done before confirmation
+    # Check if other Bank status erasing needed
+    if [ "$other_bank_status" != "blank" ]
+    then
+      # Confirm Bank $bank_num
+      (/usr/sbin/bank-admin --confirm) > /dev/null 2>&1
+      btk_print "Double banking> Bank $bank_num is now confirmed."
+    else
+      # This state shall not append
+      # Confirm Bank $bank_num
+      (/usr/sbin/bank-admin --confirm) > /dev/null 2>&1
+      btk_print "Double banking> Bank $bank_num is now confirmed."
+    fi
+    #	Get bank $bank_num crc16
+    currentKernelCrc16=$(fw_printenv kernel$bank_num_crc16 | sed 's:^.*=\(.*\)$:\1:')
+    currentRootfsCrc16=$(fw_printenv rootfs$bank_num_crc16 | sed 's:^.*=\(.*\)$:\1:')
+    #	Set current bank crc16
+    fw_setenv kernel_crc16 "$currentKernelCrc16"
+    fw_setenv rootfs_crc16 "$currentRootfsCrc16"
+    #	Reset other bank crc16
+    fw_setenv kernel"$other_bank_num"_crc16 "?"
+    fw_setenv rootfs"$other_bank_num"_crc16 "?"
+    # 	3 short Beeps to inform user
+    # btk_beep 0.250 0.250 3
+  fi
+}
+
+case "$1" in
+  start|"")
+          # Read current status
+          DOUBLE_BANKING_STATUS=$(/usr/sbin/bank-admin)
+          # Extract current MDT block
+          CURRENT_BANK=$(echo $DOUBLE_BANKING_STATUS | cut -f 2 -d"'")
+          # Extract bank 1 current status
+          BANK1_STATUS=$(echo $DOUBLE_BANKING_STATUS | cut -f 4 -d"'")
+          # Extract bank 2 current status
+          BANK2_STATUS=$(echo $DOUBLE_BANKING_STATUS | cut -f 6 -d"'")
+          # If we are using bank1
+          if [ "$CURRENT_BANK" = $BANK1_MTD_BLOCK ]
+          then
+            confirm_bank 1
+            # If we are using bank2
+          elif [ "$CURRENT_BANK" = $BANK2_MTD_BLOCK ]
+          then
+            confirm_bank 2
+          else
+            btk_error "Double banking state error ! ($DOUBLE_BANKING_STATUS)"	
+          fi
+
+          # add a copy of software configuration into download directory
+          rsync /tmp/soft*.txt /data/ftp/download/  >&2
+          # Add a copy of package.txt into download directory if exist
+          if [ -e /tmp/package.txt ]
+          then
+              rsync /tmp/package.txt /data/ftp/download/  >&2
+          fi
+    ;;
+  *)
+    echo "Usage: display_bank_status {start}" >&2
+    exit 1
+    ;;
+esac
