@@ -1,133 +1,148 @@
-#!/bin/sh
+#!/bin/bash
+set -euo pipefail
 
 echo "Entering $0"
 
-# Define partitions and other variables (if needed, extend FOLDERS for multiple partitions)
-FOLDERS="/data"
+# Global variable to store current MTD partition for detach
+CURRENT_MTD_PART=""
 
-# Format and mount the UBI volume for mtd passed as argument
+# Format the MTD partition for UBI, attach a volume, create the UBIFS filesystem
 format_data_partition() {
-	MTD_PART=$1
-	# Format the MTD partition for UBI
-	ubiformat /dev/${MTD_PART} -y -q
+		local MTD_PART="$1"
 
-	if [ $? -ne 0 ]; then
-	    echo "Error: ubiformat failed!" >&2
-	    exit 1
-	else
-	    echo "ubiformat succeeded"
-	fi
+		if ! ubiformat /dev/"${MTD_PART}" -y -q; then
+				echo "Error: ubiformat failed!" >&2
+				return 1
+		else
+				echo "ubiformat succeeded"
+		fi
 
-	# Create a UBI volume
-	ubiattach /dev/ubi_ctrl -m ${MTD_PART#mtd}
+		if ! ubiattach /dev/ubi_ctrl -m "${MTD_PART#mtd}"; then
+				echo "Error: ubiattach failed!" >&2
+				return 1
+		else
+				echo "ubiattach succeeded"
+		fi
 
-	if [ $? -ne 0 ]; then
-	    echo "Error: ubiattach failed!" >&2
-	    exit 1
-	else
-	    echo "ubiattach succeeded"
-	fi
+		if ! ubimkvol /dev/ubi0 -N data -s 128MiB; then
+				echo "Error: ubimkvol failed!" >&2
+				return 1
+		else
+				echo "ubimkvol succeeded"
+		fi
 
-	# Format the UBIFS filesystem
-	ubimkvol /dev/ubi0 -N data -s 128MiB
-
-	if [ $? -ne 0 ]; then
-	    echo "Error: ubimkvol failed!" >&2
-	    exit 1
-	else
-	    echo "ubimkvol succeeded"
-	fi
-
-	# Mount the UBIFS filesystem
-	mkfs.ubifs -r /data -e 0x1f000 -c 2048 -m 0x800 /dev/ubi0_0
-
-	if [ $? -ne 0 ]; then
-	    echo "Error: Failed to create UBIFS filesystem!" >&2
-	    exit 1
-	else
-	    echo "/data mounted successfully"
-	fi
+		if ! mkfs.ubifs -r /data -e 0x1f000 -c 2048 -m 0x800 /dev/ubi0_0; then
+				echo "Error: Failed to create UBIFS filesystem!" >&2
+				return 1
+		else
+				echo "UBIFS filesystem created successfully"
+		fi
+		return 0
 }
 
-# Function to attach, format, and mount UBI volume
+# Attach, format (if needed), and mount the UBI volume
 mount_data_partition() {
-	# Find the MTD partition for "data"
-	MTD_PART=$(grep '"data"' /proc/mtd | awk -F: '{print $1}')
+		local MTD_PART=""
 
-	if [ -z "$MTD_PART" ]; then
-		echo "Error: Data partition not found!" >&2
-		exit 1
-	fi
+		# Find the MTD partition for "data" using a bash while-read loop
+		while IFS=: read -r part rest; do
+				if [[ "$rest" == *"data"* ]]; then
+						MTD_PART="$part"
+						break
+				fi
+		done < /proc/mtd
 
-	# Check if the partition is UBI formatted
-	# nanddump -n -q -l 5 /dev/mtd6 |xxd
-	# 00000000: 5542 4923 01                             UBI#.
+		if [ -z "$MTD_PART" ]; then
+				echo "Error: Data partition not found!" >&2
+				return 1
+		fi
 
-	header=$(nanddump -n -q -l 3 /dev/${MTD_PART} | xxd | awk '{print $4}')
-	if [ "$header" = "UBI" ]; then
-		echo "UBI header found on /dev/${MTD_PART}"
-	else
-		echo "Error: UBI header not found on /dev/${MTD_PART}" >&2
-		format_data_partition ${MTD_PART}
-		exit 1
-	fi
+		# Check if the partition is UBI formatted by reading the first 3 bytes
+		local header
+		header=$(dd if=/dev/"${MTD_PART}" bs=1 count=2 2>/dev/null | od -An -tx1 | tr -d ' \n')
+		# Expecting header to start with "5542" (i.e. 0x55 0x42, corresponding to "UB")
+		if [[ "$header" == 5542* ]]; then
+				echo "UBI header found on /dev/${MTD_PART}"
+		else
+				echo "UBI header not found on /dev/${MTD_PART}, formatting partition" >&2
+				if ! format_data_partition "$MTD_PART"; then
+						return 1
+				fi
+		fi
 
-	# Attempt to attach the UBI volume
-	if ! ubiattach /dev/ubi_ctrl -m ${MTD_PART#mtd}; then
-		echo "ubiattach failed, attempting to format the partition"
-		format_data_partition ${MTD_PART}
-	else
-		echo "UBI volume attached successfully"
-	fi
+		# Attempt to attach the UBI volume; if it fails, try formatting the partition
+		if ! ubiattach /dev/ubi_ctrl -m "${MTD_PART#mtd}" 2>/dev/null; then
+				echo "ubiattach failed, attempting to format the partition" >&2
+				if ! format_data_partition "$MTD_PART"; then
+						return 1
+				fi
+		else
+				echo "UBI volume attached successfully"
+		fi
 
-	# Mount the UBIFS filesystem
-	mount -t ubifs ubi0:data /data
+		if ! mount -t ubifs ubi0:data /data; then
+				echo "Error: Failed to mount UBIFS filesystem!" >&2
+				return 1
+		else
+                # Change /data permission as the one generated in data.ubi file is not correct for /data directory
+                chmod 755 /data
+				echo "/data mounted successfully"
+		fi
 
-	if [ $? -ne 0 ]; then
-	    echo "Error: Failed to mount UBIFS filesystem!" >&2
-	    exit 1
-	else
-	    echo "/data mounted successfully"
-	fi
+		CURRENT_MTD_PART="$MTD_PART"
+		return 0
 }
 
+# Unmount the UBIFS filesystem and detach the UBI device
 unmount_data_partition() {
-    echo "Unmounting /data..."
+		echo "Unmounting /data..."
+		if ! umount /data; then
+				echo "Failed to unmount /data" >&2
+				return 1
+		fi
+		echo "/data unmounted"
 
-    # Attempt to unmount /data
-    umount /data
-    if [ $? -ne 0 ]; then
-        echo "Failed to unmount /data" >&2
-        exit 1  # Exit with a non-zero status for failure
-    fi
+		if [ -z "${CURRENT_MTD_PART:-}" ]; then
+				echo "Error: MTD partition not defined for detach" >&2
+				return 1
+		fi
 
-    echo "/data unmounted"
-    ubidetach -m ${MTD_PART#mtd}
+		if ! ubidetach -m "${CURRENT_MTD_PART#mtd}"; then
+				echo "Failed to detach UBI device" >&2
+				return 1
+		fi
+
+		return 0
 }
 
-case "$1" in
-    start|"")
-        echo "Starting mount process for $FOLDERS"
-        for n in $FOLDERS
-        do
-            echo "Processing $n"
-            if mountpoint -q $n; then
-                echo "$n is already a mountpoint, skipping."
-            else
-                mount_data_partition
-            fi
-        done
-        ;;
-    stop)
-        echo "Stopping, unmounting $FOLDERS"
-        for n in $FOLDERS
-        do
-            unmount_data_partition
-        done
-        ;;
-    *)
-        echo "Usage: $0 {start|stop}" >&2
-        exit 1
-        ;;
+case "${1:-start}" in
+		start|"")
+				echo "Starting mount process for /data"
+				if mountpoint -q "/data"; then
+						echo "/data is already a mountpoint, skipping."
+				else
+						if ! mount_data_partition; then
+								echo "Failed to mount /data" >&2
+								exit 1
+						fi
+				fi
+				;;
+		stop)
+				echo "Stopping, unmounting /data"
+				if mountpoint -q "/data"; then
+						if ! unmount_data_partition; then
+								echo "Failed to unmount /data" >&2
+								exit 1
+						fi
+				else
+						echo "/data is not mounted, skipping."
+				fi
+				;;
+		*)
+				echo "Usage: $0 {start|stop}" >&2
+				exit 1
+				;;
 esac
 
+exit 0
+ 
