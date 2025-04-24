@@ -24,14 +24,14 @@ format_data_partition() {
 				echo "ubiattach succeeded"
 		fi
 
-		if ! ubimkvol /dev/ubi0 -N data -s 128MiB; then
+		if ! ubimkvol /dev/ubi0 -N data -m; then
 				echo "Error: ubimkvol failed!" >&2
 				return 1
 		else
 				echo "ubimkvol succeeded"
 		fi
 
-		if ! mkfs.ubifs -r /data -e 0x1f000 -c 2048 -m 0x800 /dev/ubi0_0; then
+		if ! mkfs.ubifs -r /data -x none /dev/ubi0_0; then
 				echo "Error: Failed to create UBIFS filesystem!" >&2
 				return 1
 		else
@@ -57,27 +57,26 @@ mount_data_partition() {
 				return 1
 		fi
 
-		# Check if the partition is UBI formatted by reading the first 3 bytes
+		# Check if the partition is UBI formatted by reading the first 2 bytes
 		local header
 		header=$(dd if=/dev/"${MTD_PART}" bs=1 count=2 2>/dev/null | od -An -tx1 | tr -d ' \n')
 		# Expecting header to start with "5542" (i.e. 0x55 0x42, corresponding to "UB")
 		if [[ "$header" == 5542* ]]; then
 				echo "UBI header found on /dev/${MTD_PART}"
+        # Attempt to attach the UBI volume; if it fails, try formatting the partition
+        if ! ubiattach /dev/ubi_ctrl -m "${MTD_PART#mtd}" 2>/dev/null; then
+            echo "ubiattach failed, attempting to format the partition" >&2
+            if ! format_data_partition "$MTD_PART"; then
+                return 1
+            fi
+        else
+            echo "UBI volume attached successfully"
+        fi
 		else
 				echo "UBI header not found on /dev/${MTD_PART}, formatting partition" >&2
 				if ! format_data_partition "$MTD_PART"; then
 						return 1
 				fi
-		fi
-
-		# Attempt to attach the UBI volume; if it fails, try formatting the partition
-		if ! ubiattach /dev/ubi_ctrl -m "${MTD_PART#mtd}" 2>/dev/null; then
-				echo "ubiattach failed, attempting to format the partition" >&2
-				if ! format_data_partition "$MTD_PART"; then
-						return 1
-				fi
-		else
-				echo "UBI volume attached successfully"
 		fi
 
 		if ! mount -t ubifs ubi0:data /data; then
