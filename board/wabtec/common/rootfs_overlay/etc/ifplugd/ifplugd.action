@@ -1,0 +1,26 @@
+#!/bin/sh
+# ifplugd action script
+# This script is called by ifplugd when the link state changes
+
+set -e
+
+# Arguments: $1 = interface, $2 = state (up/down)
+interface=$1
+state=$2
+
+case "$state" in
+    up)
+        logger -t ifplugd "Link detected on $interface - bringing interface up"
+        /sbin/ifup $interface
+        ;;
+    down)
+        logger -t ifplugd "Link lost on $interface - bringing interface down"
+        /sbin/ifdown $interface
+        ;;
+    *)
+        logger -t ifplugd "Unknown state '$state' on $interface"
+        exit 1
+        ;;
+esac
+
+exit 0

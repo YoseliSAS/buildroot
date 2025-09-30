@@ -1,0 +1,81 @@
+#!/bin/sh
+
+DAEMON="ifplugd"
+
+# Load configuration
+# shellcheck source=/dev/null
+[ -r "/etc/default/$DAEMON" ] && . "/etc/default/$DAEMON"
+
+# If INTERFACES is defined, use it; otherwise fall back to DEFAULT_IFACE
+if [ -n "$INTERFACES" ]; then
+	IFACE_LIST="$INTERFACES"
+elif [ -n "$DEFAULT_IFACE" ]; then
+	IFACE_LIST="$DEFAULT_IFACE"
+else
+	# No interface configured
+	exit 0
+fi
+
+start() {
+	for IFACE in $IFACE_LIST; do
+		# Check if interface exists
+		if [ ! -e "/sys/class/net/$IFACE" ]; then
+			echo "Interface $IFACE not found, skipping..."
+			continue
+		fi
+
+		PIDFILE="/var/run/${DAEMON}.${IFACE}.pid"
+		printf 'Starting %s for %s: ' "$DAEMON" "$IFACE"
+		# shellcheck disable=SC2086 # we need the word splitting
+		start-stop-daemon --start --background --make-pidfile \
+			--pidfile "$PIDFILE" --exec "/usr/sbin/$DAEMON" \
+			-- -n $IFPLUGD_ARGS -i "$IFACE"
+		status=$?
+		if [ "$status" -eq 0 ]; then
+			echo "OK"
+		else
+			echo "FAIL"
+		fi
+	done
+}
+
+stop() {
+	for IFACE in $IFACE_LIST; do
+		PIDFILE="/var/run/${DAEMON}.${IFACE}.pid"
+		if [ ! -f "$PIDFILE" ]; then
+			continue
+		fi
+
+		printf 'Stopping %s for %s: ' "$DAEMON" "$IFACE"
+		start-stop-daemon --stop --pidfile "$PIDFILE" --exec "/usr/sbin/$DAEMON"
+		status=$?
+		if [ "$status" -eq 0 ]; then
+			echo "OK"
+		else
+			echo "FAIL"
+		fi
+
+		# Wait for process to actually stop
+		while start-stop-daemon --stop --test --quiet --pidfile "$PIDFILE" \
+			--exec "/usr/sbin/$DAEMON" 2>/dev/null; do
+			sleep 0.1
+		done
+		rm -f "$PIDFILE"
+	done
+}
+
+restart() {
+	stop
+	sleep 1
+	start
+}
+
+case "$1" in
+	start|stop|restart)
+		"$1";;
+	reload)
+		restart;;
+	*)
+		echo "Usage: $0 {start|stop|restart|reload}"
+		exit 1
+esac
