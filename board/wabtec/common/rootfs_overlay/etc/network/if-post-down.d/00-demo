@@ -1,0 +1,12 @@
+#!/bin/sh
+# Demo script to show post-down hooks are working
+# This runs after the interface is brought down
+
+LOGFILE="/var/log/network-postdown.log"
+
+echo "$(date): POST-DOWN script triggered for interface $IFACE" >> $LOGFILE
+echo "  Logical interface: $IFACE" >> $LOGFILE
+echo "  Address family: $ADDRFAM" >> $LOGFILE
+echo "  Method: $METHOD" >> $LOGFILE
+
+exit 0

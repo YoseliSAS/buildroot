@@ -1,0 +1,12 @@
+#!/bin/sh
+# Demo script to show up hooks are working
+# This runs after the interface is brought up
+
+LOGFILE="/var/log/network-up.log"
+
+echo "$(date): UP script triggered for interface $IFACE" >> $LOGFILE
+echo "  Logical interface: $IFACE" >> $LOGFILE
+echo "  Address family: $ADDRFAM" >> $LOGFILE
+echo "  Method: $METHOD" >> $LOGFILE
+
+exit 0
