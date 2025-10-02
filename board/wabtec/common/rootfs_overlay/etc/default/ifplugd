@@ -13,7 +13,7 @@ DEFAULT_IFACE=""
 # -M: Don't automatically bring up interface (let the action script handle it)
 # -I: Don't exit on nonzero return from script
 # -f: Don't daemonize (start-stop-daemon handles backgrounding)
-# -t: Poll time in seconds
+# -t: Poll time in seconds (let default value to 1 second)
 # -u: Delay before running script after link up
 # -d: Delay before running script after link down
 IFPLUGD_ARGS="-M -I -t 3 -u 2 -d 2"
