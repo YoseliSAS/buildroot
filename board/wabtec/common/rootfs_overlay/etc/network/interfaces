@@ -2,12 +2,12 @@
 auto lo
 iface lo inet loopback
 
+# Configure eth0: Train network interface
 iface eth0 inet dhcp
     hostname $(hostname)
     udhcpc_opts -V 'Faiveley Transport' -b -S -t 0
 
 # Configure eth1: Maintenance interface
-auto eth1
 iface eth1 inet static
     address 192.168.0.1
     netmask 255.255.255.0
