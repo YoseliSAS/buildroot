@@ -16,4 +16,4 @@ DEFAULT_IFACE=""
 # -t: Poll time in seconds
 # -u: Delay before running script after link up
 # -d: Delay before running script after link down
-IFPLUGD_ARGS="-M -I -t 3 -u 2 -d 10"
+IFPLUGD_ARGS="-M -I -t 3 -u 2 -d 2"

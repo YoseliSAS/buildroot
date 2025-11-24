@@ -2,13 +2,9 @@
 auto lo
 iface lo inet loopback
 
-# The primary network interface
-auto eth0 eth0:0
-
-# Configure eth0: Train network interface
 iface eth0 inet dhcp
     hostname $(hostname)
-    udhcpc_opts -V 'Faiveley Transport' -b -S
+    udhcpc_opts -V 'Faiveley Transport' -b -S -t 0
 
 # Configure eth1: Maintenance interface
 auto eth1

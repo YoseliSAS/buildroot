@@ -20,7 +20,7 @@ for i in /etc/init.d/S??* ;do
 	    ;;
 	*)
 	    # No sh extension, so fork subprocess.
-	    /usr/bin/time -f "user:%U system:%S elapsed:%E cpu: %P" "$i" start
+	    "$i" start
 	    ;;
     esac
 done

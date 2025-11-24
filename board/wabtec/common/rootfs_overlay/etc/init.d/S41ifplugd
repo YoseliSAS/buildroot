@@ -17,6 +17,7 @@ else
 fi
 
 start() {
+	gpioset -m signal -b gpiochip0 46=1
 	for IFACE in $IFACE_LIST; do
 		# Check if interface exists
 		if [ ! -e "/sys/class/net/$IFACE" ]; then
