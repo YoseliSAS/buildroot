@@ -21,8 +21,11 @@ LIBOPENSSL_CPE_ID_PRODUCT = $(LIBOPENSSL_PROVIDES)
 ifeq ($(BR2_m68k_cf),y)
 # relocation truncated to fit: R_68K_GOT16O
 LIBOPENSSL_CFLAGS += -mxgot
+LIBOPENSSL_TARGET_ARCH = linux-generic32
 # resolves an assembler "out of range error" with blake2 and sha512 algorithms
 LIBOPENSSL_CFLAGS += -DOPENSSL_SMALL_FOOTPRINT
+LIBOPENSSL_CFLAGS += -O1 -fno-strict-aliasing -mstrict-align -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM
+LIBOPENSSL_CONF_ENV += LDFLAGS="-latomic"
 endif
 
 ifeq ($(BR2_USE_MMU),)
@@ -70,6 +73,7 @@ define LIBOPENSSL_CONFIGURE_CMDS
 		$(TARGET_CONFIGURE_ARGS) \
 		$(TARGET_CONFIGURE_OPTS) \
 		 CFLAGS="$(LIBOPENSSL_CFLAGS)" \
+		$(LIBOPENSSL_CONF_ENV) \
 		./Configure \
 			$(LIBOPENSSL_TARGET_ARCH) \
 			--prefix=/usr \
