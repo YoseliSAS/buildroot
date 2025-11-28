@@ -4,8 +4,10 @@
 #
 ################################################################################
 
-CRYPTODEV_LINUX_VERSION = 1.14
-CRYPTODEV_LINUX_SITE = $(call github,cryptodev-linux,cryptodev-linux,cryptodev-linux-$(CRYPTODEV_LINUX_VERSION))
+# Using commit with fix for kernel 6.x compatibility
+# https://github.com/cryptodev-linux/cryptodev-linux/commit/08644db02d43478f802755903212f5ee506af73b
+CRYPTODEV_LINUX_VERSION = 08644db02d43478f802755903212f5ee506af73b
+CRYPTODEV_LINUX_SITE = $(call github,cryptodev-linux,cryptodev-linux,$(CRYPTODEV_LINUX_VERSION))
 CRYPTODEV_LINUX_INSTALL_STAGING = YES
 CRYPTODEV_LINUX_LICENSE = GPL-2.0+
 CRYPTODEV_LINUX_LICENSE_FILES = COPYING

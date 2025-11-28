@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Load cryptodev kernel module for hardware crypto acceleration
+#
+
+case "$1" in
+  start)
+	printf "Loading cryptodev module: "
+	modprobe cryptodev
+	if [ -e /dev/crypto ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+	;;
+  stop)
+	printf "Unloading cryptodev module: "
+	rmmod cryptodev 2>/dev/null
+	echo "OK"
+	;;
+  restart|reload)
+	$0 stop
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit 0
