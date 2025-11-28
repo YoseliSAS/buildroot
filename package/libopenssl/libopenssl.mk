@@ -24,7 +24,9 @@ LIBOPENSSL_CFLAGS += -mxgot
 LIBOPENSSL_TARGET_ARCH = linux-generic32
 # resolves an assembler "out of range error" with blake2 and sha512 algorithms
 LIBOPENSSL_CFLAGS += -DOPENSSL_SMALL_FOOTPRINT
-LIBOPENSSL_CFLAGS += -O1 -fno-strict-aliasing -mstrict-align -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM
+# m68k/ColdFire: disable ASM, ensure proper memory alignment
+LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM -fno-strict-aliasing -O1
+# OpenSSL 3.x requires libatomic for 64-bit atomic operations
 LIBOPENSSL_CONF_ENV += LDFLAGS="-latomic"
 endif
 
@@ -34,6 +36,8 @@ endif
 
 ifeq ($(BR2_PACKAGE_CRYPTODEV_LINUX),y)
 LIBOPENSSL_DEPENDENCIES += cryptodev-linux
+# Enable cryptodev engine for hardware crypto acceleration
+LIBOPENSSL_CFLAGS += -DHAVE_CRYPTODEV -DUSE_CRYPTODEV_DIGESTS
 endif
 
 # fixes the following build failures:
@@ -87,7 +91,7 @@ define LIBOPENSSL_CONFIGURE_CMDS
 			no-tests \
 			no-fuzz-libfuzzer \
 			no-fuzz-afl \
-			no-afalgeng \
+			enable-afalgeng \
 			$(if $(BR2_PACKAGE_LIBOPENSSL_BIN),,no-apps) \
 			$(if $(BR2_PACKAGE_LIBOPENSSL_ENGINES),,no-engine) \
 			$(if $(BR2_PACKAGE_LIBOPENSSL_ENABLE_CHACHA),,no-chacha) \
