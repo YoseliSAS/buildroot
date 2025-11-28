@@ -88,11 +88,10 @@ NGINX_CONF_OPTS += --without-pcre
 endif
 
 ifeq ($(BR2_m68k_cf),y)
+# m68k/ColdFire: Use system OpenSSL libraries (dynamic linking)
 NGINX_CFLAGS += -O1 -g -fno-strict-aliasing -mstrict-align
 NGINX_CONF_ENV += LIBS="-lssl -lcrypto -lz -ldl -lpcre"
-NGINX_CONF_OPTS += --with-openssl=$(LIBOPENSSL_DIR)
-NGINX_CONF_OPTS += --with-openssl-opt="no-asm no-threads -O1 -fno-strict-aliasing"
-NGINX_CONF_OPTS += --with-ld-opt="-L$(STAGING_DIR)/usr/lib -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic -lpcre2-8 -latomic -lz -ldl -lpthread"
+NGINX_CONF_OPTS += --with-ld-opt="-L$(STAGING_DIR)/usr/lib -lssl -lcrypto -lpcre2-8 -latomic -lz -ldl -lpthread"
 endif
 
 # modules disabled or not activated because of missing dependencies:

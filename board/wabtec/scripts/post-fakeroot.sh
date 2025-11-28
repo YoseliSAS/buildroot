@@ -20,3 +20,6 @@ chmod 600 "${TARGET_DIR}/etc/ssh/ssh_host_rsa_key"
 
 mkdir -p "${TARGET_DIR}/usr/DLC2ng"
 mkdir -p "${TARGET_DIR}/usr/network"
+
+# Remove default nginx init script (we use S99nginx from overlay)
+rm -f "${TARGET_DIR}/etc/init.d/S50nginx"
