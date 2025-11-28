@@ -79,6 +79,13 @@ GDB_CONF_ENV = \
 	bash_cv_have_mbstate_t=yes \
 	gdb_cv_func_sigsetjmp=yes
 
+# m68k/ColdFire: libgcc has hidden __sync_* symbols that can't be used by DSOs.
+# Use static libstdc++ and libgcc to avoid linker errors.
+ifeq ($(BR2_m68k_cf),y)
+GDB_CONF_ENV += LDFLAGS="-static-libstdc++ -static-libgcc"
+GDB_MAKE_ENV += LDFLAGS="-static-libstdc++ -static-libgcc"
+endif
+
 # Starting with gdb 7.11, the bundled gnulib tries to use
 # rpl_gettimeofday (gettimeofday replacement) due to the code being
 # unable to determine if the replacement function should be used or
