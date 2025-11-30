@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Sun, 24 Nov 2025 00:00:00 +0000
+Subject: [PATCH] listmount,statmount: fix build with kernel headers where
+ spare was renamed to mnt_ns_fd
+
+Linux kernel commit renamed the 'spare' field to 'mnt_ns_fd' in struct
+mnt_id_req (include/uapi/linux/mount.h). This causes build failures when
+compiling strace against newer kernel headers:
+
+  listmount.c:39:16: error: 'struct mnt_id_req' has no member named 'spare'
+  statmount.c:97:9: error: 'struct mnt_id_req' has no member named 'spare'
+
+Use the new field name 'mnt_ns_fd' which is the current upstream name.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ src/listmount.c | 4 ++--
+ src/statmount.c | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+--- a/src/listmount.c
++++ b/src/listmount.c
+@@ -36,9 +36,9 @@ print_mnt_id_req(struct tcb *const tcp,
+ 		return;
+ 	}
+
+-	if (req.spare) {
++	if (req.mnt_ns_fd) {
+ 		tprint_struct_next();
+-		PRINT_FIELD_X(req, spare);
++		PRINT_FIELD_X(req, mnt_ns_fd);
+ 	}
+
+ 	tprint_struct_next();
+--- a/src/statmount.c
++++ b/src/statmount.c
+@@ -94,9 +94,9 @@ print_mnt_id_req(struct tcb *const tcp,
+ 		return;
+ 	}
+
+-	if (req.spare) {
++	if (req.mnt_ns_fd) {
+ 		tprint_struct_next();
+-		PRINT_FIELD_X(req, spare);
++		PRINT_FIELD_X(req, mnt_ns_fd);
+ 	}
+
+ 	tprint_struct_next();
