@@ -1,0 +1,61 @@
+From efe720f9cafb0685253d06ec8b397b85b241e13c Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Sun, 30 Nov 2025 12:12:27 +0100
+Subject: [PATCH] m68k: ldso: fix elf_machine_relative instruction reordering
+
+The elf_machine_relative function uses a pre-decrement then post-increment
+pattern to iterate through relocations:
+
+    --rpnt;
+    do {
+        Elf32_Addr *const reloc_addr = (void *) (load_off + (++rpnt)->r_offset);
+        *reloc_addr = load_off + rpnt->r_addend;
+    } while (--relative_count);
+
+GCC may reorder memory accesses within the loop body, causing the pointer
+increment to occur between reading r_offset and r_addend. This results in
+r_addend being read from the wrong relocation entry.
+
+This manifests as corrupted relocations during dynamic linking, causing
+crashes or memory corruption in dynamically linked binaries.
+
+Fix by using a straightforward loop that reads both fields before
+incrementing the pointer, avoiding the problematic increment-in-expression
+pattern that confuses the optimizer.
+
+Note: Building uClibc with -fno-schedule-insns -fno-schedule-insns2 is
+also recommended on m68k to prevent instruction scheduling issues.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ ldso/ldso/m68k/dl-sysdep.h | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/ldso/ldso/m68k/dl-sysdep.h b/ldso/ldso/m68k/dl-sysdep.h
+index 5d2d7a0..42172b1 100644
+--- a/ldso/ldso/m68k/dl-sysdep.h
++++ b/ldso/ldso/m68k/dl-sysdep.h
+@@ -75,13 +75,15 @@ static __always_inline void
+ elf_machine_relative (Elf32_Addr load_off, const Elf32_Addr rel_addr,
+ 		      Elf32_Word relative_count)
+ {
+-	 Elf32_Rela * rpnt = (void *)rel_addr;
+-	--rpnt;
+-	do {
+-		Elf32_Addr *const reloc_addr = (void *) (load_off + (++rpnt)->r_offset);
++	Elf32_Rela *rpnt = (Elf32_Rela *)rel_addr;
+
+-		*reloc_addr = load_off + rpnt->r_addend;
+-	} while (--relative_count);
++	while (relative_count--) {
++		Elf32_Addr r_offset = rpnt->r_offset;
++		Elf32_Addr r_addend = rpnt->r_addend;
++		rpnt++;
++
++		*(Elf32_Addr *)(load_off + r_offset) = load_off + r_addend;
++	}
+ }
+
+ #define DL_UPDATE_LOADADDR_HDR(LOADADDR, ADDR, PHDR)
+--
+2.39.5
