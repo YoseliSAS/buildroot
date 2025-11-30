@@ -31,7 +31,10 @@ ifeq ($(BR2_riscv):$(BR2_RISCV_ISA_RVM),y:)
 GMP_CONF_OPTS += --disable-assembly
 endif
 
-ifeq ($(BR2_INSTALL_LIBSTDCPP),y)
+# m68k/ColdFire: Disable C++ bindings due to hidden __sync_* symbols in libgcc
+ifeq ($(BR2_m68k_cf),y)
+GMP_CONF_OPTS += --disable-cxx
+else ifeq ($(BR2_INSTALL_LIBSTDCPP),y)
 GMP_CONF_OPTS += --enable-cxx
 else
 GMP_CONF_OPTS += --disable-cxx
