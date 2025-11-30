@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Sun, 24 Nov 2025 00:00:00 +0000
+Subject: [PATCH] tee: fix build with kernel headers that define
+ TEE_IOC_SHM_REGISTER_FD
+
+Linux kernel 6.17 added struct tee_ioctl_shm_register_fd_data and
+TEE_IOC_SHM_REGISTER_FD to include/uapi/linux/tee.h. This causes build
+failures when compiling strace against newer kernel headers:
+
+  tee.c:12:8: error: redefinition of 'struct tee_ioctl_shm_register_fd_data'
+  tee.c:21: error: "TEE_IOC_SHM_REGISTER_FD" redefined [-Werror]
+
+Make the local definitions conditional to avoid redefinition errors.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ src/tee.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/src/tee.c
++++ b/src/tee.c
+@@ -8,6 +8,8 @@
+ #include "defs.h"
+ #include <linux/tee.h>
+
++/* Only define if not already in UAPI headers (added in kernel 6.17) */
++#ifndef TEE_IOC_SHM_REGISTER_FD
+ /* Not in UAPI.  */
+ struct tee_ioctl_shm_register_fd_data {
+ 	int64_t fd;
+@@ -20,6 +22,8 @@ struct tee_ioctl_shm_register_fd_data {
+
+ #define TEE_IOC_SHM_REGISTER_FD _IOWR(0xa4, 8, struct tee_ioctl_shm_register_fd_data)
+
++#endif /* TEE_IOC_SHM_REGISTER_FD */
++
+ #include "xlat/tee_ioctl_gen_caps.h"
+ #include "xlat/tee_ioctl_impl_ids.h"
+ #include "xlat/tee_ioctl_login_types.h"
