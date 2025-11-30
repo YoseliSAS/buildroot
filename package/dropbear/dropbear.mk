@@ -62,6 +62,15 @@ endef
 DROPBEAR_POST_EXTRACT_HOOKS += DROPBEAR_SVR_PASSWORD_AUTH
 endif
 
+# m68k: Disable ML-KEM768 post-quantum crypto - causes GCC internal compiler
+# error in cselib_record_set during the postreload pass
+ifeq ($(BR2_m68k),y)
+define DROPBEAR_DISABLE_MLKEM
+	echo '#define DROPBEAR_MLKEM768 0'               >> $(@D)/localoptions.h
+endef
+DROPBEAR_POST_EXTRACT_HOOKS += DROPBEAR_DISABLE_MLKEM
+endif
+
 ifeq ($(BR2_PACKAGE_DROPBEAR_LEGACY_CRYPTO),y)
 define DROPBEAR_ENABLE_LEGACY_CRYPTO
 	echo '#define DROPBEAR_3DES 1'                  >> $(@D)/localoptions.h
