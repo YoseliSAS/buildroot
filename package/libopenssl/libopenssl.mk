@@ -25,7 +25,10 @@ LIBOPENSSL_TARGET_ARCH = linux-generic32
 # resolves an assembler "out of range error" with blake2 and sha512 algorithms
 LIBOPENSSL_CFLAGS += -DOPENSSL_SMALL_FOOTPRINT
 # m68k/ColdFire: disable ASM, ensure proper memory alignment
-LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM -fno-strict-aliasing -O1
+# -fno-schedule-insns: GCC's instruction scheduler on m68k can reorder memory
+# accesses in ways that break OpenSSL's internal state, especially after fork().
+# This is the same issue that affected uclibc's elf_machine_relative.
+LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM -fno-strict-aliasing -fno-schedule-insns -fno-schedule-insns2
 # OpenSSL 3.x requires libatomic for 64-bit atomic operations
 LIBOPENSSL_CONF_ENV += LDFLAGS="-latomic"
 endif
