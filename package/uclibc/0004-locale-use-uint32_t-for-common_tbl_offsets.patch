@@ -1,0 +1,100 @@
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Sun, 1 Dec 2024 14:00:00 +0100
+Subject: [PATCH] locale: fix cross-compilation structure layout mismatch
+
+The locale data generator (gen_ldc) runs on the host and computes
+structure member offsets using offsetof(). These offsets are baked
+into locale_data.c as integer literals.
+
+When cross-compiling for a target with different alignment requirements,
+the structure layout differs:
+- x86_64 host: int32_t alignment = 4 bytes, size_t = 8 bytes
+- m68k target: int32_t alignment = 2 bytes, size_t = 4 bytes
+
+This causes offset values to be wrong for the target, resulting in
+corrupted locale data (e.g., decimal_point pointing to wrong memory,
+showing 0x03 instead of 0x2e '.').
+
+Fix by:
+1. Using uint32_t instead of size_t for lc_common_tbl_offsets
+2. Using __attribute__((__packed__)) on the structure to ensure
+   consistent layout between host and target
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ extra/locale/gen_ldc.c      | 15 ++++++++++++++-
+ extra/locale/locale_mmap.h  |  4 ++--
+ libc/misc/locale/locale.c   |  2 +-
+ 3 files changed, 17 insertions(+), 4 deletions(-)
+
+--- a/extra/locale/locale_mmap.h
++++ b/extra/locale/locale_mmap.h
+@@ -72,7 +72,7 @@
+ 	const uint16_t collate_data[__lc_collate_data_LEN];
+
+ 	unsigned char lc_common_item_offsets_LEN[__LOCALE_DATA_CATEGORIES];
+-	size_t lc_common_tbl_offsets[__LOCALE_DATA_CATEGORIES * 4];
++	uint32_t lc_common_tbl_offsets[__LOCALE_DATA_CATEGORIES * 4];
+ 	/* offsets from start of locale_mmap_t */
+ 	/* rows, item_offsets, item_idx, data */
+
+@@ -86,7 +86,7 @@
+ 	unsigned char lc_names[__lc_names_LEN];
+ #ifdef __CTYPE_HAS_8_BIT_LOCALES
+ 	unsigned char codeset_list[sizeof(__LOCALE_DATA_CODESET_LIST)]; /* TODO - fix */
+ #endif
+-} __locale_mmap_t;
++} __attribute__((__packed__)) __locale_mmap_t;
+
+ extern const __locale_mmap_t *__locale_mmap;
+--- a/extra/locale/gen_ldc.c
++++ b/extra/locale/gen_ldc.c
+@@ -69,7 +69,7 @@
+ 	offsetof(__locale_mmap_t, __PASTE3(lc_,X,_data)) \
+
+
+-static const size_t common_tbl_offsets[__LOCALE_DATA_CATEGORIES*4] = {
++static const uint32_t common_tbl_offsets[__LOCALE_DATA_CATEGORIES*4] = {
+ 	COMMON_OFFSETS(ctype),
+ 	COMMON_OFFSETS(numeric),
+ 	COMMON_OFFSETS(monetary),
+@@ -78,6 +78,19 @@
+ 	COMMON_OFFSETS(messages),
+ };
+
++void out_u32(FILE *f, const uint32_t *p, size_t n, char *comment)
++{
++	size_t i;
++
++	fprintf(f, "{\t/* %s */", comment);
++	for (i = 0 ; i < n ; i++) {
++		if (!(i & 3)) {
++			fprintf(f, "\n\t");
++		}
++		fprintf(f, "%#010x, ", p[i]);
++	}
++	fprintf(f, "\n},\n");
++}
+
+ void out_uc(FILE *f, const unsigned char *p, size_t n, char *comment)
+ {
+@@ -269,7 +282,7 @@
+ 		out_uc(lso, co_buf, __LOCALE_DATA_CATEGORIES, "lc_common_item_offsets_LEN");
+ 	}
+
+-	out_size_t(lso, common_tbl_offsets, __LOCALE_DATA_CATEGORIES * 4, "lc_common_tbl_offsets");
++	out_u32(lso, common_tbl_offsets, __LOCALE_DATA_CATEGORIES * 4, "lc_common_tbl_offsets");
+ 	/* offsets from start of locale_mmap_t */
+ 	/* rows, item_offsets, item_idx, data */
+
+--- a/libc/misc/locale/locale.c
++++ b/libc/misc/locale/locale.c
+@@ -514,7 +514,7 @@
+ {
+ 	const char **x;
+ 	unsigned char *s = base->cur_locale + 1;
+-	const size_t *stp;
++	const uint32_t *stp;
+ 	const unsigned char *r;
+ 	const uint16_t *io;
+ 	const uint16_t *ii;
