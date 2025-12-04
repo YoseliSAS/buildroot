@@ -1,0 +1,43 @@
+From fed5aded8b3c4f26b677164d88966282733ecc4f Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Thu, 4 Dec 2025 11:48:44 +0100
+Subject: [PATCH] m68k: use fast trap for get_thread_area
+
+The Linux kernel for m68k/ColdFire now provides a fast path for
+get_thread_area() via TRAP #1, avoiding full syscall overhead.
+
+Instead of:
+  move.l #__NR_get_thread_area, %d0
+  trap #0  (full syscall with save/restore, signal checks, etc.)
+
+We now use:
+  trap #1  (fast trap handler, ~5 instructions in kernel)
+
+This significantly reduces TLS access overhead, which impacts every
+errno check and thread-local variable access.
+
+The kernel's fast_get_tp handler (entry.S) reads thread_info->tp_value
+and returns it in d0 via RTE, without the full syscall machinery.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ ldso/ldso/m68k/m68k_read_tp.S | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/ldso/ldso/m68k/m68k_read_tp.S b/ldso/ldso/m68k/m68k_read_tp.S
+index cb5280e67..9165e2dda 100644
+--- a/ldso/ldso/m68k/m68k_read_tp.S
++++ b/ldso/ldso/m68k/m68k_read_tp.S
+@@ -41,8 +41,7 @@
+ # endif
+ 
+ ENTRY (__m68k_read_tp)
+-	move.l	#__NR_get_thread_area, %d0
+-	trap	#0
++	trap	#1
+ 	move.l	%d0, %a0
+ 	rts
+ END (__m68k_read_tp)
+-- 
+2.39.5
+
