@@ -4,55 +4,78 @@
 #               to make them writable but non-persistent.
 #
 
+# Timestamp using shell built-in read (no fork)
+ts() { read -r uptime _ < /proc/uptime; echo "[$uptime] $*"; }
+
+# Load mount table once, check with shell pattern matching (no fork)
+MOUNTS=$(cat /proc/mounts)
+is_mountpoint() {
+    case "$MOUNTS" in
+        *" $1 "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 FOLDERS="/etc(nosuid,nodev):/var(nosuid,nodev):/home(nosuid,nodev):/run(nosuid,nodev)"
 VOLATILE="/volatile"
-SCRIPTNAME=$(basename -- "$0")
+# Use shell parameter expansion instead of forking basename
+SCRIPTNAME="${0##*/}"
 
 [ -d "$VOLATILE" ] || exit 0
 
-# Extract folders to manage in an array
-IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
-
 case "$1" in
     start|"")
-        echo "Making the following folders writable but non-persistent (using OverlayFS):"
+        ts "$SCRIPTNAME: start"
+        IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
 
-        for entry in "${FOLDERS_ARRAY[@]}"; do  
+        # Build mkdir list and create all directories at once
+        MKDIRS=""
+        for entry in "${FOLDERS_ARRAY[@]}"; do
+            folder="${entry%%(*}"
+            bfolder="${folder##*/}"
+            MKDIRS="$MKDIRS $VOLATILE/${bfolder}_upper $VOLATILE/${bfolder}_work"
+        done
+        ts "$SCRIPTNAME: mkdir all"
+        mkdir -p $MKDIRS
+
+        # Copy permissions from lowerdir to upperdir (overlayfs uses upperdir perms for mount point)
+        for entry in "${FOLDERS_ARRAY[@]}"; do
+            folder="${entry%%(*}"
+            bfolder="${folder##*/}"
+            chown --reference="$folder" "$VOLATILE/${bfolder}_upper" &
+            chmod --reference="$folder" "$VOLATILE/${bfolder}_upper" &
+        done
+        wait
+
+        # Mount overlays in parallel (libs loaded once, cached for others)
+        ts "$SCRIPTNAME: mount all (parallel)"
+        for entry in "${FOLDERS_ARRAY[@]}"; do
             folder="${entry%%(*}"                          # Extraction du chemin du dossier
             options="${entry#*(}" options="${options%)}"   # Extraction des options
-
-            echo -n "$SCRIPTNAME folder: $folder..."
 
             bfolder="${folder##*/}"
             upperdir="$VOLATILE/${bfolder}_upper"
             workdir="$VOLATILE/${bfolder}_work"
 
-            if mountpoint -q "$folder"; then
-                echo " failed, keep going. ($folder is already a mountpoint)"
+            if is_mountpoint "$folder"; then
                 continue
             fi
 
-            mkdir -p "$upperdir" "$workdir"
             mount_opts="lowerdir=$folder,upperdir=$upperdir,workdir=$workdir"
 
-            # Ajouter les options de sÃ©curitÃ© si elles existent
+            # Ajouter les options de sécurité si elles existent
             [[ -n "$options" && "$options" != "$folder" ]] && mount_opts="$mount_opts,$options"
 
-            mount -t overlay overlay -o "$mount_opts" "$folder"
-
-            if [ $? -eq 0 ]; then
-                echo " done"
-            else
-                echo " failed"
-            fi
+            mount -t overlay overlay -o "$mount_opts" "$folder" &
         done
+        wait
+        ts "$SCRIPTNAME: end"
         ;;
     stop)
-        echo "Unmounting OverlayFS mounts..."
-
+        IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
         for entry in "${FOLDERS_ARRAY[@]}"; do
             folder="${entry%%(*}"
-            if mountpoint -q "$folder"; then
+            if is_mountpoint "$folder"; then
                 umount "$folder" && echo "$folder unmounted."
             fi
         done
