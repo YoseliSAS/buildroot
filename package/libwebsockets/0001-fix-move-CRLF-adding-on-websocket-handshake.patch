@@ -1,0 +1,32 @@
+From 2c7e9959869d17cac8bb71cf908ebaabcfe35c22 Mon Sep 17 00:00:00 2001
+From: Richard Beaujouan <richard.beaujouan@wabtec.com>
+Date: Thu, 22 Jan 2026 09:57:37 +0100
+Subject: [PATCH] fix(websocket): websocket handshake issue
+
+When sending websocket upgrade, a CRLF was missing between Sec-WebSocket-Accept: and Sec-WebSocket-extensions: fields
+Move CRLF outside an if section
+
+Signed-off-by: Richard Beaujouan <richard.beaujouan@wabtec.com>
+---
+ lib/roles/ws/server-ws.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/lib/roles/ws/server-ws.c b/lib/roles/ws/server-ws.c
+index 82e3ed98..50baf03c 100644
+--- a/lib/roles/ws/server-ws.c
++++ b/lib/roles/ws/server-ws.c
+@@ -737,9 +737,10 @@ handshake_0405(struct lws_context *context, struct lws *wsi)
+ 
+ 		LWS_CPYAPP(p, "\x0d\x0aSec-WebSocket-Protocol: ");
+ 		p += lws_snprintf(p, 128, "%s", prot);
+-		LWS_CPYAPP(p, "\x0d\x0a");
+ 	}
+ 
++       LWS_CPYAPP(p, "\x0d\x0a");
++
+ #if !defined(LWS_WITHOUT_EXTENSIONS)
+ 	/*
+ 	 * Figure out which extensions the client has that we want to
+-- 
+2.43.0
+
