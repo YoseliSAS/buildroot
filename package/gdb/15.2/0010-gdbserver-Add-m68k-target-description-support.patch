@@ -1,0 +1,174 @@
+From 50b1e4540f56970cff66f42a2c0d7d27cd60540a Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Tue, 10 Feb 2026 15:04:31 +0100
+Subject: [PATCH] gdbserver: Add m68k target description support
+
+The m68k architecture support in gdbserver was incomplete - it declared
+tdesc_m68k and init_registers_m68k() but never defined them, causing
+an assertion failure at runtime:
+
+  tdesc_get_features_xml: Assertion `tdesc->xmltarget != NULL ||
+  (!tdesc->features.empty () && tdesc->arch != NULL)' failed.
+
+Add linux-m68k-tdesc.cc which creates the m68k target description
+programmatically using the org.gnu.gdb.coldfire.core and
+org.gnu.gdb.coldfire.fp features.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ gdbserver/Makefile.in         |   1 +
+ gdbserver/configure.srv       |  14 +----
+ gdbserver/linux-m68k-tdesc.cc | 100 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 103 insertions(+), 12 deletions(-)
+ create mode 100644 gdbserver/linux-m68k-tdesc.cc
+
+diff --git a/gdbserver/Makefile.in b/gdbserver/Makefile.in
+index 6148ccf..8a86642 100644
+--- a/gdbserver/Makefile.in
++++ b/gdbserver/Makefile.in
+@@ -198,6 +198,7 @@ SFILES = \
+ 	$(srcdir)/linux-loongarch-low.cc \
+ 	$(srcdir)/linux-low.cc \
+ 	$(srcdir)/linux-m68k-low.cc \
++	$(srcdir)/linux-m68k-tdesc.cc \
+ 	$(srcdir)/linux-mips-low.cc \
+ 	$(srcdir)/linux-nios2-low.cc \
+ 	$(srcdir)/linux-or1k-low.cc \
+diff --git a/gdbserver/configure.srv b/gdbserver/configure.srv
+index 9e861a7..849dbaa 100644
+--- a/gdbserver/configure.srv
++++ b/gdbserver/configure.srv
+@@ -139,22 +139,12 @@ case "${gdbserver_host}" in
+ 			srv_linux_usrregs=yes
+ 			srv_linux_thread_db=yes
+ 			;;
+-  m68*-*-linux*)	if test "$gdb_cv_m68k_is_coldfire" = yes; then
+-                          srv_regobj=reg-cf.o
+-                        else
+-                          srv_regobj=reg-m68k.o
+-                        fi
+-			srv_tgtobj="$srv_linux_obj linux-m68k-low.o"
++  m68*-*-linux*)	srv_tgtobj="$srv_linux_obj linux-m68k-low.o linux-m68k-tdesc.o"
+ 			srv_linux_usrregs=yes
+ 			srv_linux_regsets=yes
+ 			srv_linux_thread_db=yes
+ 			;;
+-  m68*-*-uclinux*)	if test "$gdb_cv_m68k_is_coldfire" = yes; then
+-                          srv_regobj=reg-cf.o
+-                        else
+-                          srv_regobj=reg-m68k.o
+-                        fi
+-			srv_tgtobj="$srv_linux_obj linux-m68k-low.o"
++  m68*-*-uclinux*)	srv_tgtobj="$srv_linux_obj linux-m68k-low.o linux-m68k-tdesc.o"
+ 			srv_linux_usrregs=yes
+ 			srv_linux_regsets=yes
+ 			srv_linux_thread_db=yes
+diff --git a/gdbserver/linux-m68k-tdesc.cc b/gdbserver/linux-m68k-tdesc.cc
+new file mode 100644
+index 0000000..ce2ca6a
+--- /dev/null
++++ b/gdbserver/linux-m68k-tdesc.cc
+@@ -0,0 +1,100 @@
++/* Copyright (C) 2026 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++/* M68K target description for gdbserver.  */
++
++#include "server.h"
++#include "tdesc.h"
++#include "gdbsupport/tdesc.h"
++
++/* The M68K target description.  */
++const struct target_desc *tdesc_m68k;
++
++/* Declared in linux-m68k-low.cc.  */
++void init_registers_m68k (void);
++
++/* Create the M68K target description.  */
++static struct target_desc *
++m68k_create_target_description (void)
++{
++  target_desc_up tdesc = allocate_target_description ();
++  long regnum = 0;
++
++  set_tdesc_architecture (tdesc.get (), "m68k");
++
++  /* Create the "org.gnu.gdb.coldfire.core" feature.  */
++  struct tdesc_feature *feature
++    = tdesc_create_feature (tdesc.get (), "org.gnu.gdb.coldfire.core");
++
++  /* Data registers d0-d7.  */
++  tdesc_create_reg (feature, "d0", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d1", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d2", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d3", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d4", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d5", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d6", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "d7", regnum++, 1, NULL, 32, "int");
++
++  /* Address registers a0-a5.  */
++  tdesc_create_reg (feature, "a0", regnum++, 1, NULL, 32, "data_ptr");
++  tdesc_create_reg (feature, "a1", regnum++, 1, NULL, 32, "data_ptr");
++  tdesc_create_reg (feature, "a2", regnum++, 1, NULL, 32, "data_ptr");
++  tdesc_create_reg (feature, "a3", regnum++, 1, NULL, 32, "data_ptr");
++  tdesc_create_reg (feature, "a4", regnum++, 1, NULL, 32, "data_ptr");
++  tdesc_create_reg (feature, "a5", regnum++, 1, NULL, 32, "data_ptr");
++
++  /* Frame pointer (a6) and stack pointer (a7).  */
++  tdesc_create_reg (feature, "fp", regnum++, 1, NULL, 32, "data_ptr");
++  tdesc_create_reg (feature, "sp", regnum++, 1, NULL, 32, "data_ptr");
++
++  /* Status register and program counter.  */
++  tdesc_create_reg (feature, "ps", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "pc", regnum++, 1, NULL, 32, "code_ptr");
++
++  /* Create the "org.gnu.gdb.coldfire.fp" feature for FP registers.  */
++  feature = tdesc_create_feature (tdesc.get (), "org.gnu.gdb.coldfire.fp");
++
++  /* FP registers fp0-fp7 (96-bit extended precision).  */
++  tdesc_create_reg (feature, "fp0", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp1", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp2", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp3", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp4", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp5", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp6", regnum++, 1, NULL, 96, "i387_ext");
++  tdesc_create_reg (feature, "fp7", regnum++, 1, NULL, 96, "i387_ext");
++
++  /* FP control registers.  */
++  tdesc_create_reg (feature, "fpcontrol", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "fpstatus", regnum++, 1, NULL, 32, "int");
++  tdesc_create_reg (feature, "fpiaddr", regnum++, 1, NULL, 32, "code_ptr");
++
++  return tdesc.release ();
++}
++
++/* Initialize the M68K target description.  Called from initialize_low_arch.  */
++void
++init_registers_m68k (void)
++{
++  struct target_desc *tdesc = m68k_create_target_description ();
++
++  static const char *expedite_regs[] = { "sp", "fp", "pc", 0 };
++  init_target_desc (tdesc, expedite_regs);
++
++  tdesc_m68k = tdesc;
++}
+-- 
+2.39.5
+
