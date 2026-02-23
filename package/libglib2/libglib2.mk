@@ -22,12 +22,19 @@ ifeq ($(BR2_ARM_INSTRUCTIONS_THUMB),y)
 LIBGLIB2_CFLAGS += -marm
 endif
 
+# m68k Coldfire: libgio is too large for the default 16-bit GOT offsets.
+# Use -mxgot to support more than 8192 GOT entries.
+ifeq ($(BR2_m68k_cf),y)
+LIBGLIB2_CFLAGS += -mxgot
+endif
+
 HOST_LIBGLIB2_CONF_OPTS = \
-	-Ddtrace=false \
+	-Ddtrace=disabled \
 	-Dglib_debug=disabled \
 	-Dlibelf=disabled \
 	-Dselinux=disabled \
-	-Dsystemtap=false \
+	-Dsystemtap=disabled \
+	-Dsysprof=disabled \
 	-Dxattr=false \
 	-Dtests=false \
 	-Doss_fuzz=disabled
@@ -116,6 +123,13 @@ LIBGLIB2_DEPENDENCIES += util-linux
 endif
 else
 LIBGLIB2_CONF_OPTS += -Dlibmount=disabled
+endif
+
+# m68k Coldfire: glib links static libs (girepository-internals) into shared
+# libs (libgirepository), which requires PIC. Override the Buildroot default
+# of b_staticpic=false for m68k_cf.
+ifeq ($(BR2_m68k_cf),y)
+LIBGLIB2_CONF_OPTS += -Db_staticpic=true
 endif
 
 # Purge useless binaries from target

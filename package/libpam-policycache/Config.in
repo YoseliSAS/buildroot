@@ -1,0 +1,24 @@
+config BR2_PACKAGE_LIBPAM_POLICYCACHE
+	bool "libpam-policycache"
+	depends on BR2_PACKAGE_LINUX_PAM
+	depends on BR2_TOOLCHAIN_HAS_THREADS # libglib2
+	depends on BR2_USE_WCHAR # libglib2
+	depends on BR2_USE_MMU # libglib2
+	select BR2_PACKAGE_LIBGLIB2
+	select BR2_PACKAGE_LIBSCRYPT
+	help
+	  Password caching module with advanced policies for PAM.
+
+	  Allows offline authentication when the primary authentication
+	  server is unavailable, with configurable cache lifetime and
+	  policy rules.
+
+	  Note: This repository is archived and no longer maintained
+	  by Google as of January 2023.
+
+	  https://github.com/google/libpam-policycache
+
+comment "libpam-policycache needs a toolchain w/ threads, wchar"
+	depends on BR2_USE_MMU
+	depends on BR2_PACKAGE_LINUX_PAM
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || !BR2_USE_WCHAR
