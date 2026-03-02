@@ -1,0 +1,163 @@
+From d2f6e911b00ef3f90bb6219de6bcfef7257a0331 Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Mon, 23 Feb 2026 08:46:33 +0100
+Subject: [PATCH] libcrypt: Add crypt_r() reentrant function
+
+Add support for the reentrant crypt_r() function which is a glibc
+extension commonly used by applications like PAM modules for
+thread-safe password hashing.
+
+Implementation details:
+- SHA256 and SHA512: Use existing __sha256_crypt_r/__sha512_crypt_r
+  internal functions which are fully reentrant
+- MD5 and DES: Fall back to non-reentrant crypt() and copy result
+  to the user-provided buffer (acceptable since these legacy
+  algorithms are rarely used in new code)
+
+The struct crypt_data provides a 256-byte output buffer matching
+glibc's minimum requirement, plus reserved space for future use.
+
+Enable with UCLIBC_HAS_CRYPT_R=y in configuration.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ extra/Configs/Config.in | 11 ++++++++-
+ include/crypt.h         | 19 +++++++++++++++
+ libcrypt/Makefile.in    |  1 +
+ libcrypt/crypt_r.c      | 53 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 83 insertions(+), 1 deletion(-)
+ create mode 100644 libcrypt/crypt_r.c
+
+diff --git a/extra/Configs/Config.in b/extra/Configs/Config.in
+index 454b6ddb8..dc0579fab 100644
+--- a/extra/Configs/Config.in
++++ b/extra/Configs/Config.in
+@@ -1319,6 +1319,15 @@ config UCLIBC_HAS_SHA512_CRYPT_IMPL
+ 	  This adds support for SHA512 password hashing via the crypt() function.
+ 	  Say N here if you do not need SHA512 crypt support.
+ 
++config UCLIBC_HAS_CRYPT_R
++	bool "crypt_r() reentrant version"
++	depends on UCLIBC_HAS_CRYPT_IMPL
++	depends on UCLIBC_HAS_SHA256_CRYPT_IMPL || UCLIBC_HAS_SHA512_CRYPT_IMPL
++	help
++	  This adds support for the reentrant crypt_r() function.
++	  SHA256 and SHA512 algorithms are fully reentrant.
++	  MD5 and DES fall back to non-reentrant crypt() for compatibility.
++
+ config UCLIBC_HAS_CRYPT_STUB
+ 	bool "libcrypt stubs"
+ 	default y
+@@ -1844,7 +1853,7 @@ config UCLIBC_HAS_STDIO_AUTO_RW_TRANSITION
+ 	  fflush function or to a file positioning function (fseek, fsetpos,
+ 	  or rewind), and input shall not be directly followed by output without
+ 	  an intervening call to a file positioning function, unless the input
+-	  operation encounters end­of­file.
++	  operation encounters endï¿½ofï¿½file.
+ 
+ 	  Most people will answer Y.
+ 
+diff --git a/include/crypt.h b/include/crypt.h
+index 825e7eb57..d840b796c 100644
+--- a/include/crypt.h
++++ b/include/crypt.h
+@@ -28,6 +28,25 @@ __BEGIN_DECLS
+ extern char *crypt (const char *__key, const char *__salt)
+      __THROW __nonnull ((1, 2));
+ 
++#ifdef __USE_GNU
++/* Indicate that crypt_r() is available */
++#define __UCLIBC_HAS_CRYPT_R__ 1
++
++/* Structure to store crypt_r() state.
++ * Before first use, set initialized to 0. */
++struct crypt_data {
++    char output[256];		/* Buffer for returned hash string */
++    char initialized;		/* Set to 0 before first call */
++    char __reserved[255];	/* Reserved for future use */
++};
++
++/* Reentrant version of crypt().
++ * Instead of using a static buffer, writes result to DATA->output. */
++extern char *crypt_r (const char *__key, const char *__salt,
++		      struct crypt_data *__restrict __data)
++     __THROW __nonnull ((1, 2, 3));
++#endif
++
+ /* Setup DES tables according KEY.  */
+ extern void setkey (const char *__key) __THROW __nonnull ((1));
+ 
+diff --git a/libcrypt/Makefile.in b/libcrypt/Makefile.in
+index fe3df2995..123dbfbeb 100644
+--- a/libcrypt/Makefile.in
++++ b/libcrypt/Makefile.in
+@@ -16,6 +16,7 @@ libcrypt_SRC-y :=
+ libcrypt_SRC-$(UCLIBC_HAS_CRYPT_IMPL) += crypt.c des.c md5.c
+ libcrypt_SRC-$(UCLIBC_HAS_SHA256_CRYPT_IMPL) += sha256.c sha256-crypt.c
+ libcrypt_SRC-$(UCLIBC_HAS_SHA512_CRYPT_IMPL) += sha512.c sha512-crypt.c
++libcrypt_SRC-$(UCLIBC_HAS_CRYPT_R) += crypt_r.c
+ libcrypt_SRC-$(UCLIBC_HAS_CRYPT_STUB) += crypt_stub.c
+ 
+ libcrypt_SRC := $(addprefix $(libcrypt_DIR)/,$(libcrypt_SRC-y))
+diff --git a/libcrypt/crypt_r.c b/libcrypt/crypt_r.c
+new file mode 100644
+index 000000000..f5c82c6da
+--- /dev/null
++++ b/libcrypt/crypt_r.c
+@@ -0,0 +1,53 @@
++/*
++ * crypt_r() for uClibc-ng
++ *
++ * Reentrant version of crypt() supporting SHA256 and SHA512.
++ * MD5 and DES are not supported in reentrant mode.
++ *
++ * Copyright (C) 2025 YoseliSAS
++ * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
++ */
++
++#include <string.h>
++#include <errno.h>
++#include <crypt.h>
++#include "libcrypt.h"
++
++char *crypt_r(const char *key, const char *salt, struct crypt_data *data)
++{
++	const unsigned char *ukey = (const unsigned char *)key;
++	const unsigned char *usalt = (const unsigned char *)salt;
++
++	if (salt[0] == '$' && salt[2] == '$') {
++		switch (salt[1]) {
++#ifdef __UCLIBC_HAS_SHA256_CRYPT_IMPL__
++		case '5':
++			return __sha256_crypt_r(key, salt,
++						data->output,
++						sizeof(data->output));
++#endif
++#ifdef __UCLIBC_HAS_SHA512_CRYPT_IMPL__
++		case '6':
++			return __sha512_crypt_r(key, salt,
++						data->output,
++						sizeof(data->output));
++#endif
++		default:
++			/* MD5 ($1$) and others not supported in _r version */
++			break;
++		}
++	}
++
++	/* DES and unsupported algorithms: fall back to non-reentrant crypt()
++	 * and copy result to data->output for API compatibility.
++	 * This is not thread-safe but better than returning NULL. */
++	char *result = crypt(key, salt);
++	if (result) {
++		strncpy(data->output, result, sizeof(data->output) - 1);
++		data->output[sizeof(data->output) - 1] = '\0';
++		return data->output;
++	}
++
++	__set_errno(EINVAL);
++	return NULL;
++}
+-- 
+2.39.5
+
