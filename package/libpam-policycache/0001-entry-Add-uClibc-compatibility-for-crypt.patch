@@ -1,0 +1,63 @@
+From 9d75a894ed93a8b4aa6c93c7010444368d26c57a Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Mon, 23 Feb 2026 07:54:28 +0100
+Subject: [PATCH 1/4] entry: Add uClibc compatibility for crypt()
+
+uClibc-ng does not provide crypt_r() or struct crypt_data, which are
+glibc extensions for thread-safe password hashing.
+
+Use the non-reentrant crypt() function when building with uClibc.
+This is safe in PAM context as password validation calls are
+serialized by the PAM framework.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ src/entry.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/src/entry.c b/src/entry.c
+index 928ca1e..be7c708 100644
+--- a/src/entry.c
++++ b/src/entry.c
+@@ -23,6 +23,15 @@
+ 
+ #include "util.h"
+ 
++/*
++ * uClibc-ng compatibility: crypt_r() and struct crypt_data are glibc
++ * extensions not available in uClibc. Use non-reentrant crypt() instead.
++ * This is safe in PAM context as password validation is serialized.
++ */
++#if defined(__UCLIBC__) && !defined(__UCLIBC_HAS_CRYPT_R__)
++#define USE_CRYPT_COMPAT 1
++#endif
++
+ #define CACHE_ENTRY_DEFAULT_ALGORITHM G_CHECKSUM_SHA256
+ #define CACHE_ENTRY_DEFAULT_SALT_LENGTH 16
+ 
+@@ -363,7 +372,9 @@ gboolean CacheEntryPasswordValidate(CacheEntry *self, const gchar *password,
+   // statements.
+   guint8 *hash_buf = NULL;
+   GByteArray *salt = NULL;
++#ifndef USE_CRYPT_COMPAT
+   struct crypt_data crypt_state;
++#endif
+   char *hash_str = NULL;
+ 
+   if (!self->hash) {
+@@ -412,8 +423,12 @@ gboolean CacheEntryPasswordValidate(CacheEntry *self, const gchar *password,
+     g_byte_array_append(salt, g_bytes_get_data(self->hash, NULL),
+                         g_bytes_get_size(self->hash));
+     g_byte_array_append(salt, (const guint8 *) "\0", 1);
++#ifdef USE_CRYPT_COMPAT
++    hash_str = crypt(password, (const char *) salt->data);
++#else
+     crypt_state.initialized = 0;
+     hash_str = crypt_r(password, (const char *) salt->data, &crypt_state);
++#endif
+     g_byte_array_unref(salt);
+     hash = g_bytes_new(hash_str, strlen(hash_str));
+     break;
+-- 
+2.43.0
+

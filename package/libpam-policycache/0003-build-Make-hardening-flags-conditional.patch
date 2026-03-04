@@ -1,0 +1,83 @@
+From b42b43c19bca9caf38b22d2036b3e3b59be8e56b Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Mon, 23 Feb 2026 07:55:24 +0100
+Subject: [PATCH 3/4] build: Make hardening flags conditional
+
+Not all toolchains support -fstack-protector-all (requires libssp or
+libc SSP support) or -pie (not supported on some architectures like
+m68k with certain C libraries).
+
+Add configure checks for these flags and only use them if supported.
+This improves portability to embedded systems with minimal toolchains.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ configure.ac    | 24 ++++++++++++++++++++++++
+ src/Makefile.am |  6 +++---
+ 2 files changed, 27 insertions(+), 3 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 3bef45d..44f889a 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -36,6 +36,30 @@ AC_TYPE_UINT32_T
+ AC_FUNC_MALLOC
+ AC_CHECK_FUNCS([memset])
+ 
++# Check for stack protector support (requires libssp or libc support)
++AC_MSG_CHECKING([whether $CC supports -fstack-protector-all])
++saved_CFLAGS="$CFLAGS"
++CFLAGS="$CFLAGS -fstack-protector-all"
++AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
++    [AC_MSG_RESULT([yes])
++     HARDENING_CFLAGS="-fstack-protector-all"],
++    [AC_MSG_RESULT([no])
++     HARDENING_CFLAGS=""])
++CFLAGS="$saved_CFLAGS"
++AC_SUBST([HARDENING_CFLAGS])
++
++# Check for PIE support (may not work on all architectures)
++AC_MSG_CHECKING([whether $CC supports -pie])
++saved_LDFLAGS="$LDFLAGS"
++LDFLAGS="$LDFLAGS -pie"
++AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])],
++    [AC_MSG_RESULT([yes])
++     PIE_LDFLAGS="-pie"],
++    [AC_MSG_RESULT([no])
++     PIE_LDFLAGS=""])
++LDFLAGS="$saved_LDFLAGS"
++AC_SUBST([PIE_LDFLAGS])
++
+ AC_CONFIG_FILES([Makefile
+                  testdata/Makefile
+                  src/Makefile])
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 258a592..3908699 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -1,7 +1,7 @@
+ AM_CFLAGS = $(GLIB_CFLAGS) -Wall -Werror \
+ 	    -DG_LOG_DOMAIN="\"pamcache\"" \
+ 	    -D_GNU_SOURCE=1 \
+-	    -fPIC -fstack-protector-all -D_FORTIFY_SOURCE=2 \
++	    -fPIC $(HARDENING_CFLAGS) -D_FORTIFY_SOURCE=2 \
+ 	    -Wl,-z,relro,-z,now -Wformat -Wformat-security
+ AM_LDFLAGS = $(GLIB_LIBS) -lpam -lcrypt -lscrypt -Wa,--noexecstack
+ 
+@@ -40,11 +40,11 @@ pam_escalate_la_LDFLAGS = -shared -module -avoid-version \
+ bin_PROGRAMS = pam-escalate-helper pam-policycache-import
+ pam_escalate_helper_SOURCES = escalate_helper.c escalate_helper.h
+ pam_escalate_helper_LDADD = libescalate.la
+-pam_escalate_helper_LDFLAGS = $(AM_LDFLAGS) -pie
++pam_escalate_helper_LDFLAGS = $(AM_LDFLAGS) $(PIE_LDFLAGS)
+ 
+ pam_policycache_import_SOURCES = import.c import.h
+ pam_policycache_import_LDADD = libcache.la
+-pam_policycache_import_LDFLAGS = $(AM_LDFLAGS) -pie
++pam_policycache_import_LDFLAGS = $(AM_LDFLAGS) $(PIE_LDFLAGS)
+ 
+ install-exec-hook:
+ 	chmod u+s $(DESTDIR)$(bindir)/pam-escalate-helper
+-- 
+2.43.0
+

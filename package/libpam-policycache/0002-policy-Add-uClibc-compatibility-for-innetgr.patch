@@ -1,0 +1,40 @@
+From 046f81a19986ed8fd095d32978e4001f5ae80ade Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Mon, 23 Feb 2026 07:54:47 +0100
+Subject: [PATCH 2/4] policy: Add uClibc compatibility for innetgr()
+
+uClibc-ng does not provide innetgr() which is used for NIS netgroup
+lookups. Stub it to always return false when building with uClibc.
+
+This effectively disables netgroup-based policy matching (e.g.,
+"netgroup:admins" sections in policy files), but user: and group:
+matching still works normally.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ src/policy.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/policy.c b/src/policy.c
+index 19f5613..63a1f8d 100644
+--- a/src/policy.c
++++ b/src/policy.c
+@@ -19,6 +19,15 @@
+ 
+ #include <netdb.h>
+ 
++/*
++ * uClibc-ng compatibility: innetgr() is used for NIS netgroup lookups
++ * which is not available in uClibc. Stub it to always return false,
++ * effectively disabling netgroup-based policy matching.
++ */
++#if defined(__UCLIBC__) && !defined(__UCLIBC_HAS_NISPLUS__)
++#define innetgr(netgroup, host, user, domain) 0
++#endif
++
+ 
+ /**
+  * CachePolicyNew:
+-- 
+2.43.0
+

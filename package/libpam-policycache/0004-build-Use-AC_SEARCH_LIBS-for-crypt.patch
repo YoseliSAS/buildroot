@@ -1,0 +1,46 @@
+From c4649f2cf7219493d12eac0bf0bcf07826c30c68 Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Mon, 23 Feb 2026 08:42:54 +0100
+Subject: [PATCH 4/4] build: Use AC_SEARCH_LIBS for crypt
+
+uClibc-ng provides crypt() and crypt_r() in libc.so directly,
+not in a separate libcrypt.so. Use AC_SEARCH_LIBS which checks
+libc first before falling back to -lcrypt.
+
+This avoids statically linking libcrypt.a into PAM modules.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ configure.ac    | 2 +-
+ src/Makefile.am | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 44f889a..be78e0b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -15,7 +15,7 @@ AM_PROG_AR
+ LT_INIT
+ PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32.4])
+ AC_CHECK_LIB([scrypt], [libscrypt_scrypt], [], [AC_MSG_ERROR([libscrypt not found])])
+-AC_CHECK_LIB([crypt], [crypt], [], [AC_MSG_ERROR([libcrypt not found])])
++AC_SEARCH_LIBS([crypt], [crypt], [], [AC_MSG_ERROR([crypt function not found])])
+ AC_CHECK_LIB([pam], [pam_start], [], [AC_MSG_ERROR([libpam not found])])
+ 
+ # Checks for header files.
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 3908699..7d34e67 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -3,7 +3,7 @@ AM_CFLAGS = $(GLIB_CFLAGS) -Wall -Werror \
+ 	    -D_GNU_SOURCE=1 \
+ 	    -fPIC $(HARDENING_CFLAGS) -D_FORTIFY_SOURCE=2 \
+ 	    -Wl,-z,relro,-z,now -Wformat -Wformat-security
+-AM_LDFLAGS = $(GLIB_LIBS) -lpam -lcrypt -lscrypt -Wa,--noexecstack
++AM_LDFLAGS = $(GLIB_LIBS) -lpam -lscrypt -Wa,--noexecstack
+ 
+ 
+ # Common libraries for the tests, setuid helper, and the final PAM modules.
+-- 
+2.43.0
+
