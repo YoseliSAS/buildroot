@@ -25,13 +25,13 @@ function btk_this_path() {
 
       # Go through all symlinks to find the ultimate location of the source file
       while [ -h "$_source" ] ; do
-         _source="$(readlink "$_source")"; 
+         _source="$(readlink "$_source")";
       done
 
       # Get an absolute path to the directory that contains this file
       _dir="$( cd -P "$( dirname "$_source" )" && pwd )"
    fi
-   
+
    echo "${_dir}"
 }
 

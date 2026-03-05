@@ -34,7 +34,7 @@ function extract_field_from_file()
 {
   InputFile=$1
   Field=$2
-  
+
   grep $Field $InputFile | sed "s/^$Field\(.*\)$/\1/"
 }
 
@@ -47,7 +47,7 @@ function flash_mtd(){
    if ! btk_flash_mtd_device ${_file} ${_mtd} ${_crc} ; then
       btk_print "Error at first attempt !"
       btk_print "Second try..."
-      
+
       if ! btk_flash_mtd_device ${_file} ${_mtd} ${_crc} ; then
          btk_error "btk_flash_mtd_device failed"
       fi
@@ -69,36 +69,36 @@ function flash_mtd(){
 #------------------------------------------------------------------------------
 function flash_bank()
 {
-	local bank_nb=$1
+    local bank_nb=$1
   # Sanity check
   if [[ "${bank_nb}" != "1" ]] && [[ "${bank_nb}" != "2" ]]
   then
     btk_print "Invalid bank number ${bank_nb}"
     return 1
   fi
-  
+
   # Remove potentially existing bank Confirmation file awaiting for bank flashing result
   rm -f $tmpConfirmBankFile
-  
-	local other_bank_nb=0;
 
-	if [[ "${bank_nb}" == "1" ]] ; then
-		_mtdKernel=${mtdKernel1}
-		_mtdRootFS=${mtdRootFS1}
-		other_bank_nb=2;
-	else
-		_mtdKernel=${mtdKernel2}
-		_mtdRootFS=${mtdRootFS2}
-		other_bank_nb=1;
-	fi
+    local other_bank_nb=0;
 
-	# Flash kernel and rootfs
+    if [[ "${bank_nb}" == "1" ]] ; then
+        _mtdKernel=${mtdKernel1}
+        _mtdRootFS=${mtdRootFS1}
+        other_bank_nb=2;
+    else
+        _mtdKernel=${mtdKernel2}
+        _mtdRootFS=${mtdRootFS2}
+        other_bank_nb=1;
+    fi
+
+    # Flash kernel and rootfs
     btk_print "Programming Kernel..."
-	flash_mtd ${kernelFile} ${_mtdKernel} ${newKernelCrc16}
+    flash_mtd ${kernelFile} ${_mtdKernel} ${newKernelCrc16}
     btk_print "Done"
     btk_print "Programming rootfs..."
-	flash_mtd ${rootfsFile} ${_mtdRootFS} ${newRootfsCrc16}
- 	btk_print "Done."
+    flash_mtd ${rootfsFile} ${_mtdRootFS} ${newRootfsCrc16}
+    btk_print "Done."
 
   # Tell fyinstaller to confirm bank if everything went correct
   btk_print "Signal that bank confirmation is needed in <$tmpConfirmBankFile>..."
@@ -110,15 +110,15 @@ function flash_bank()
   echo "newRootfsFileType=${inputFSType}" >> $tmpConfirmBankFile
   echo "newPackageCrc16=${newPackageCrc16}" >> $tmpConfirmBankFile
 
- 	btk_print "Done."
+    btk_print "Done."
 
-	btk_print "Removing temporary files..."	
-	# remove temporary files
-	rm ${kernelFile}
-	rm ${rootfsFile}
-	rm ${kernelCrc16File}
-	rm ${rootfsCrc16File}
- 	btk_print "Done."
+    btk_print "Removing temporary files..."
+    # remove temporary files
+    rm ${kernelFile}
+    rm ${rootfsFile}
+    rm ${kernelCrc16File}
+    rm ${rootfsCrc16File}
+    btk_print "Done."
 }
 
 #------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ function flash_bank()
 #------------------------------------------------------------------------------
 function flash_confirm_bank()
 {
-	local other_bank_nb=0;
+    local other_bank_nb=0;
 
   # Sanity check
   if [[ ! -e ${tmpConfirmBankFile} ]]
@@ -156,13 +156,13 @@ function flash_confirm_bank()
     return 1
   fi
 
-	if [[ "${bank_nb}" == "1" ]] ; then
-		other_bank_nb=2;
-	else
-		other_bank_nb=1;
-	fi
+    if [[ "${bank_nb}" == "1" ]] ; then
+        other_bank_nb=2;
+    else
+        other_bank_nb=1;
+    fi
 
-	btk_print "Bank confirmation..."
+    btk_print "Bank confirmation..."
 
   # Set bank as confirmed
   fw_setenv bank${bank_nb}_status confirmed

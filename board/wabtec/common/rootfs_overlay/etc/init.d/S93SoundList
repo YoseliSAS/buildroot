@@ -1,19 +1,19 @@
 #!/bin/bash
-#===============================================================================================# 
-#              FAIVELEY TRANSPORT               | No APS.....: D14203                           # 
-#          www.faiveleytransport.com            | Project....: DLC2ng		                # 
-#           Hall Parc - Batiment 6A             | Customer...: All		                # 
-#            3,rue du 19 mars 1962              | System.....: Door controller                  # 
-#         92230  Gennevilliers FRANCE           | Sub System.: Daughter board                   # 
-#===============================================================================================# 
-#    Date    | Name | Rev. | Comments								#
+#===============================================================================================#
+#              FAIVELEY TRANSPORT               | No APS.....: D14203                           #
+#          www.faiveleytransport.com            | Project....: DLC2ng                           #
+#           Hall Parc - Batiment 6A             | Customer...: All                              #
+#            3,rue du 19 mars 1962              | System.....: Door controller                  #
+#         92230  Gennevilliers FRANCE           | Sub System.: Daughter board                   #
+#===============================================================================================#
+#    Date    | Name | Rev. | Comments                                                           #
 #------------+------+------+--------------------------------------------------------------------#
-# 27/08/2015 | STB  | A0   | First release							#
+# 27/08/2015 | STB  | A0   | First release                                                      #
 #------------+------+------+--------------------------------------------------------------------#
-#            |      |      |									#
+#            |      |      |                                                                    #
 #------------+------+------+--------------------------------------------------------------------#
-#            |      |      |									#
-#===============================================================================================# 
+#            |      |      |                                                                    #
+#===============================================================================================#
 # Parameters:
 lszRootDirectory="/usr/DLC2ng/sound/"
 lszOutputFileAndPath="/tmp/sound_list.txt"
@@ -22,4 +22,3 @@ if [ -e $lszRootDirectory ]
 then
 	ls $lszRootDirectory > $lszOutputFileAndPath
 fi
-

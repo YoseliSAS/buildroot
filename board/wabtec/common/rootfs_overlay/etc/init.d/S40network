@@ -12,165 +12,165 @@ readonly OP_MODE_FILE="/tmp/operational_mode"
 mkdir -p /run/network
 
 log_message() {
-        local message="$1"
-        echo "$message"
-        logger -t network_script "$message"
+		local message="$1"
+		echo "$message"
+		logger -t network_script "$message"
 }
 
 check_file() {
-        local file="$1"
-        local error_msg="$2"
+		local file="$1"
+		local error_msg="$2"
 
-        if [[ ! -f "$file" ]]; then
-                log_message "Error: $error_msg"
-                return 1
-        fi
-        return 0
+		if [[ ! -f "$file" ]]; then
+				log_message "Error: $error_msg"
+				return 1
+		fi
+		return 0
 }
 
 validate_mac() {
-        local mac="$1"
-        local interface="$2"
+		local mac="$1"
+		local interface="$2"
 
-        local mac_prefix="${mac:0:9}"
-        if [[ "$mac_prefix" != "$FAY_MAC_RANGE" ]]; then
-                log_message "Error: $interface MAC ($mac_prefix) not in expected range"
-                return 1
-        fi
-        return 0
+		local mac_prefix="${mac:0:9}"
+		if [[ "$mac_prefix" != "$FAY_MAC_RANGE" ]]; then
+				log_message "Error: $interface MAC ($mac_prefix) not in expected range"
+				return 1
+		fi
+		return 0
 }
 
 # Parse the HCS file once and return values
 parse_hcs() {
-        local hcs_data
+		local hcs_data
 
-        if ! check_file "$HCS_FILE" "HCS file not found"; then
-                return 1
-        fi
+		if ! check_file "$HCS_FILE" "HCS file not found"; then
+				return 1
+		fi
 
-        # Read file once to improve performance
-        hcs_data=$(cat "$HCS_FILE")
+		# Read file once to improve performance
+		hcs_data=$(cat "$HCS_FILE")
 
-        # Use grep instead of line-by-line reading
-        TRAIN1=$(echo "$hcs_data" | grep -oP "Ethernet channel 1.*\K[01]" || echo "0")
-        TRAIN2=$(echo "$hcs_data" | grep -oP "Ethernet channel 2.*\K[01]" || echo "0") 
-        SWITCH=$(echo "$hcs_data" | grep -oP "Bypass-relay.*\K[01]" || echo "0")
+		# Use grep instead of line-by-line reading
+		TRAIN1=$(echo "$hcs_data" | grep -oP "Ethernet channel 1.*\K[01]" || echo "0")
+		TRAIN2=$(echo "$hcs_data" | grep -oP "Ethernet channel 2.*\K[01]" || echo "0")
+		SWITCH=$(echo "$hcs_data" | grep -oP "Bypass-relay.*\K[01]" || echo "0")
 
-        echo "parse_hcs return"
-        echo "TRAIN1=$TRAIN1"
-        echo "TRAIN2=$TRAIN2"
-        echo "SWITCH=$SWITCH"
+		echo "parse_hcs return"
+		echo "TRAIN1=$TRAIN1"
+		echo "TRAIN2=$TRAIN2"
+		echo "SWITCH=$SWITCH"
 
-        export TRAIN1 TRAIN2 SWITCH
+		export TRAIN1 TRAIN2 SWITCH
 }
 
 # Apply the hardware configuration values
 apply_hcs() {
-        if [ "$SWITCH" == "1" ]; then
-                  echo 1 > /sys/kernel/debug/switch_config/switch_enabled
-                  sleep 2
-                  echo Ethernet switch activated
-        else
-          if [ "$TRAIN1" == "1" ]; then
-                  echo 1 > /sys/kernel/debug/switch_config/fec0_enabled
-                  # inotifywait -e create,moved_to,attrib --include '/sys/class/net/eth0' '/sys/class/net/' -qq
-                  # fsnotifywait -e create --include '/sys/class/net/eth0' '/sys/class/net/' -qq
-                  sleep 2
-                  echo eth0 activated
-          fi
-          if [ "$TRAIN2" == "1" ]; then
-                  echo 1 > /sys/kernel/debug/switch_config/fec1_enabled
-                  # inotifywait -e create,moved_to,attrib --include '/sys/class/net/eth1' '/sys/class/net/' -qq
-                  # fsnotifywait -e create --include '/sys/class/net/eth1' '/sys/class/net/' -qq
-                  sleep 2
-                  echo eth1 activated
-          fi
-        fi
+		if [ "$SWITCH" == "1" ]; then
+				  echo 1 > /sys/kernel/debug/switch_config/switch_enabled
+				  sleep 2
+				  echo Ethernet switch activated
+		else
+		  if [ "$TRAIN1" == "1" ]; then
+				  echo 1 > /sys/kernel/debug/switch_config/fec0_enabled
+				  # inotifywait -e create,moved_to,attrib --include '/sys/class/net/eth0' '/sys/class/net/' -qq
+				  # fsnotifywait -e create --include '/sys/class/net/eth0' '/sys/class/net/' -qq
+				  sleep 2
+				  echo eth0 activated
+		  fi
+		  if [ "$TRAIN2" == "1" ]; then
+				  echo 1 > /sys/kernel/debug/switch_config/fec1_enabled
+				  # inotifywait -e create,moved_to,attrib --include '/sys/class/net/eth1' '/sys/class/net/' -qq
+				  # fsnotifywait -e create --include '/sys/class/net/eth1' '/sys/class/net/' -qq
+				  sleep 2
+				  echo eth1 activated
+		  fi
+		fi
 }
 
 # Start train interface (eth0) if enabled and valid
 start_train_interface() {
 
-        return 0
+		return 0
 }
 
 # Start maintenance interface based on SWITCH and operational mode
 start_maintenance_interface() {
-        local mode
+		local mode
 
-        if [[ "$SWITCH" != "0" ]]; then
-                log_message "Setting maintenance IP on eth0"
-                ip addr add 192.168.0.1/24 brd + dev eth0
-                return 0
-        else
-          log_message "Setting maintenance IP on eth1"
-          ip addr add 192.168.0.1/24 brd + dev eth1
-        fi
+		if [[ "$SWITCH" != "0" ]]; then
+				log_message "Setting maintenance IP on eth0"
+				ip addr add 192.168.0.1/24 brd + dev eth0
+				return 0
+		else
+		  log_message "Setting maintenance IP on eth1"
+		  ip addr add 192.168.0.1/24 brd + dev eth1
+		fi
 
-        return 0
+		return 0
 }
 
 start_network() {
-        log_message "Starting network..."
-        #  Loopback is always activated
-        ip addr add 127.0.0.1/8 dev lo 2>/dev/null
-        ip link set lo up
+		log_message "Starting network..."
+		#  Loopback is always activated
+		ip addr add 127.0.0.1/8 dev lo 2>/dev/null
+		ip link set lo up
 
-        parse_hcs
-        apply_hcs
-        echo "start_train_interface"
-        start_train_interface
-        echo "start_maintenance_interface"
-        start_maintenance_interface
-        echo "eth0 up"
-        ip link set eth0 up
-        if [ "$TRAIN2" == "1" ]; then
-          echo "eth1 up"
-          ip link set eth1 up
-        fi
-        echo "up end"
-        
-        # Deactivate bypass relay
-        /usr/bin/gpioset -z -c gpiochip0 46=1
-        echo "gpioset end"
+		parse_hcs
+		apply_hcs
+		echo "start_train_interface"
+		start_train_interface
+		echo "start_maintenance_interface"
+		start_maintenance_interface
+		echo "eth0 up"
+		ip link set eth0 up
+		if [ "$TRAIN2" == "1" ]; then
+		  echo "eth1 up"
+		  ip link set eth1 up
+		fi
+		echo "up end"
+
+		# Deactivate bypass relay
+		/usr/bin/gpioset -z -c gpiochip0 46=1
+		echo "gpioset end"
 }
 
 stop_network() {
-        log_message "Stopping network..."
-        # Activate bypass relay
-        /usr/bin/gpioset -z -c gpiochip0 46=0
+		log_message "Stopping network..."
+		# Activate bypass relay
+		/usr/bin/gpioset -z -c gpiochip0 46=0
 }
 
 usage() {
-        echo "Usage: $0 {start|stop|restart|reload}"
-        exit 1
+		echo "Usage: $0 {start|stop|restart|reload}"
+		exit 1
 }
 
 echo "WARNING: $0 is for debug only. Shall be replace in platform layer"
 
 main() {
-        # Default to "start" if no argument is given
-        local action=${1:-start}
+		# Default to "start" if no argument is given
+		local action=${1:-start}
 
-        case "$action" in
-                start)
-                        start_network
-                        ;;
-                stop)
-                        stop_network
-                        ;;
-                restart|reload)
-                        stop_network
-                        sleep 1  # Add a small delay between stop and start
-                        start_network
-                        ;;
-                *)
-                        usage
-                        ;;
-        esac
+		case "$action" in
+				start)
+						start_network
+						;;
+				stop)
+						stop_network
+						;;
+				restart|reload)
+						stop_network
+						sleep 1  # Add a small delay between stop and start
+						start_network
+						;;
+				*)
+						usage
+						;;
+		esac
 }
 
 # Run the script
 main "$@"
 exit 0
- 
+

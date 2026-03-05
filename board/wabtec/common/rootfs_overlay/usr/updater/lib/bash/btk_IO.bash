@@ -1,19 +1,19 @@
 #!/bin/bash
-#===============================================================================================# 
-#              FAIVELEY TRANSPORT               | No APS.....: D14203                           # 
-#          www.faiveleytransport.com            | Project....: DLC2ng		                # 
-#           Hall Parc - Batiment 6A             | Customer...: All		                # 
-#            3,rue du 19 mars 1962              | System.....: Door controller                  # 
-#         92230  Gennevilliers FRANCE           | Sub System.: Daughter board                   # 
-#===============================================================================================# 
-#    Date    | Name | Rev. | Comments								#
+#===============================================================================================#
+#              FAIVELEY TRANSPORT               | No APS.....: D14203                           #
+#          www.faiveleytransport.com            | Project....: DLC2ng                           #
+#           Hall Parc - Batiment 6A             | Customer...: All                              #
+#            3,rue du 19 mars 1962              | System.....: Door controller                  #
+#         92230  Gennevilliers FRANCE           | Sub System.: Daughter board                   #
+#===============================================================================================#
+#    Date    | Name | Rev. | Comments                                                           #
 #------------+------+------+--------------------------------------------------------------------#
-# 04/05/2022 | STB  | A0   | First release							#
+# 04/05/2022 | STB  | A0   | First release                                                      #
 #------------+------+------+--------------------------------------------------------------------#
-#            |      |      |									#
+#            |      |      |                                                                    #
 #------------+------+------+--------------------------------------------------------------------#
-#            |      |      |									#
-#===============================================================================================# 
+#            |      |      |                                                                    #
+#===============================================================================================#
 export pidOfErrBlink=/tmp/ErrBlink.pid
 export pidOfOkBlink=/tmp/OkBlink.pid
 export errorLedDevice=/sys/class/gpio/PD0/value
@@ -64,9 +64,10 @@ function blink_ok_led_10hz_task() {
             sleep 0.05
             echo 0 > $okLedDevice
             sleep 0.05
-        done    
+        done
     fi
 }
+
 #------------------------------------------------------------------------------
 # Turn on OK LED
 # OUT: stdout
@@ -85,9 +86,10 @@ function blink_ok_led_1hz_task() {
             sleep 0.5
             echo 0 > $okLedDevice
             sleep 0.5
-        done  
+        done
     fi
 }
+
 #------------------------------------------------------------------------------
 # Turn on OK LED
 # OUT: stdout
@@ -106,9 +108,10 @@ function blink_ok_led_pulse_task() {
             sleep 0.05
             echo 0 > $okLedDevice
             sleep 0.95
-        done  
+        done
     fi
 }
+
 #------------------------------------------------------------------------------
 # Turn on OK LED
 # OUT: stdout
@@ -143,7 +146,6 @@ function set_err_led_on() {
     echo 1 > $errorLedDevice
 }
 
-
 function blink_err_led_1hz_task() {
     echo $BASHPID > $pidOfErrBlink
     btk_chmod_chown $pidOfErrBlink 666 root:root
@@ -154,6 +156,7 @@ function blink_err_led_1hz_task() {
         sleep 0.5
     done
 }
+
 #------------------------------------------------------------------------------
 # Turn on OK LED
 # OUT: stdout
@@ -177,6 +180,7 @@ function blink_err_led_10hz_task() {
         sleep 0.05
     done
 }
+
 #------------------------------------------------------------------------------
 # Turn on OK LED
 # OUT: stdout

@@ -63,15 +63,15 @@ mount_data_partition() {
 		# Expecting header to start with "5542" (i.e. 0x55 0x42, corresponding to "UB")
 		if [[ "$header" == 5542* ]]; then
 				echo "UBI header found on /dev/${MTD_PART}"
-        # Attempt to attach the UBI volume; if it fails, try formatting the partition
-        if ! ubiattach /dev/ubi_ctrl -m "${MTD_PART#mtd}" 2>/dev/null; then
-            echo "ubiattach failed, attempting to format the partition" >&2
-            if ! format_data_partition "$MTD_PART"; then
-                return 1
-            fi
-        else
-            echo "UBI volume attached successfully"
-        fi
+		# Attempt to attach the UBI volume; if it fails, try formatting the partition
+		if ! ubiattach /dev/ubi_ctrl -m "${MTD_PART#mtd}" 2>/dev/null; then
+			echo "ubiattach failed, attempting to format the partition" >&2
+			if ! format_data_partition "$MTD_PART"; then
+				return 1
+			fi
+		else
+			echo "UBI volume attached successfully"
+		fi
 		else
 				echo "UBI header not found on /dev/${MTD_PART}, formatting partition" >&2
 				if ! format_data_partition "$MTD_PART"; then
@@ -83,8 +83,8 @@ mount_data_partition() {
 				echo "Error: Failed to mount UBIFS filesystem!" >&2
 				return 1
 		else
-                # Change /data permission as the one generated in data.ubi file is not correct for /data directory
-                chmod 755 /data
+				# Change /data permission as the one generated in data.ubi file is not correct for /data directory
+				chmod 755 /data
 				echo "/data mounted successfully"
 		fi
 
@@ -144,4 +144,3 @@ case "${1:-start}" in
 esac
 
 exit 0
- 
