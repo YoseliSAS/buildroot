@@ -67,7 +67,7 @@ if [ "x$1" = "x--confirm" ]; then
     fw_setenv bank1_status "confirmed" && fw_setenv bank2_status "blank" && echo " => bank #1 confirmed"
     echo
     exit 0
-    
+
     elif [ $bank = "2" ]; then
     fw_setenv bank1_status "blank" && fw_setenv bank2_status "confirmed" && echo " => bank #2 confirmed"
     echo
