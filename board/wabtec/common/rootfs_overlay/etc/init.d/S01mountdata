@@ -1,4 +1,7 @@
 #!/bin/bash
+#dummy DAEMON to respect buildroot template
+DAEMON="/bin/true"
+
 set -euo pipefail
 
 echo "Entering $0"
