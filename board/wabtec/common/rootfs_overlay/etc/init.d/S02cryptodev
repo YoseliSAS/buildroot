@@ -2,13 +2,13 @@
 #
 # Load cryptodev kernel module for hardware crypto acceleration
 #
-#dummy DAEMON to declare DAEMON in line with the manual’s SNNfoo start script template
-DAEMON="/bin/true"
+#declare DAEMON in line with the buildroot manual’s SNNfoo start script template (though one shot script)
+DAEMON="cryptodev"
 
 case "$1" in
 	start)
 		printf "Loading cryptodev module: "
-		modprobe cryptodev
+		modprobe $DAEMON
 		if [ -e /dev/crypto ]; then
 			echo "OK"
 		else
@@ -17,7 +17,7 @@ case "$1" in
 	;;
 	stop)
 		printf "Unloading cryptodev module: "
-		rmmod cryptodev 2>/dev/null
+		rmmod $DAEMON 2>/dev/null
 		echo "OK"
 		;;
 	restart|reload)
