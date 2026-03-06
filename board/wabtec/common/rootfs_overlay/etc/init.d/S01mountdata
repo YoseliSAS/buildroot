@@ -1,5 +1,6 @@
 #!/bin/bash
-#dummy DAEMON to respect buildroot template
+
+# shellcheck disable=SC2034  # Required by Buildroot SysV template; one-shot script
 DAEMON="mountdata"
 
 set -euo pipefail
