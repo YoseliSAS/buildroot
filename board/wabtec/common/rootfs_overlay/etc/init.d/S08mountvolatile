@@ -39,7 +39,7 @@ case "$1" in
 			MKDIRS="$MKDIRS $VOLATILE/${bfolder}_upper $VOLATILE/${bfolder}_work"
 		done
 		ts "$SCRIPTNAME: mkdir all"
-		mkdir -p $MKDIRS
+		mkdir -p "$MKDIRS"
 
 		# Copy permissions from lowerdir to upperdir (overlayfs uses upperdir perms for mount point)
 		for entry in "${FOLDERS_ARRAY[@]}"; do
