@@ -1,6 +1,6 @@
 #!/bin/bash
 #dummy DAEMON to respect buildroot template
-DAEMON="/bin/true"
+DAEMON="mountdata"
 
 set -euo pipefail
 
