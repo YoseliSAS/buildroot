@@ -4,8 +4,8 @@
 #               to make them writable but non-persistent.
 #
 
-#dummy DAEMON to declare DAEMON in line with the manual’s SNNfoo start script template
-DAEMON="/bin/true"
+# shellcheck disable=SC2034  # Required by Buildroot SysV template; one-shot script
+DAEMON="mountvolatile"
 
 # Timestamp using shell built-in read (no fork)
 ts() { read -r uptime _ < /proc/uptime; echo "[$uptime] $*"; }
