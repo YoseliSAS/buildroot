@@ -33,7 +33,7 @@ tc class add dev $DEV parent 1:1 classid 1:10 htb rate ${UPLINK}kbit \
 # bulk & default class 1:20 - gets slightly less traffic,
 # and a lower priority:
 echo "Bulk & default class 1:20"
-tc class add dev $DEV parent 1:1 classid 1:20 htb rate $[9*$UPLINK/10]kbit \
+tc class add dev $DEV parent 1:1 classid 1:20 htb rate $((9 * UPLINK / 10))kbit \
    burst 6k prio 2
 
 # both get Stochastic Fairness:
