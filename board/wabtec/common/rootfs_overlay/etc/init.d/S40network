@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# shellcheck disable=SC2034  # Required by Buildroot SysV template; one-shot script
+DAEMON="network"
+
 set -euo pipefail
 
 readonly FAY_MAC_RANGE="00:1B:79:"
