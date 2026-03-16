@@ -8,7 +8,7 @@
 #------------------------------------------------------------------------------
 # Allow expanding a range into a full list.
 # Parameters:
-#    A single string describing the range. The string can be made of a 
+#    A single string describing the range. The string can be made of a
 #     combination of single elements and ranges.
 #    Ranges are reordered if needed so the end result is always growing.
 # Example:
@@ -21,9 +21,9 @@ function btk_arg_expand_range() {
       if [[ ${singleOrRange} == *-* ]]; then
          local pair=($(IFS=-; echo ${singleOrRange}))
          local -i start=${pair[0]} end=${pair[1]} temp
-         
+
          ((start > end)) && ((temp=end, end=start, start=temp))
-        
+
          for ((i=${start}; i<=${end}; ++i)); do
             all+="${all:+ }${i}"
          done
@@ -38,7 +38,7 @@ function btk_arg_expand_range() {
 #------------------------------------------------------------------------------
 # Create a expression to be evaluated to parse options and parameter for
 #  a function or a main program.
-# If a parameter is missing, or the input is incomplete, an error gets 
+# If a parameter is missing, or the input is incomplete, an error gets
 #  produced.
 #
 # Parameters:
@@ -162,5 +162,3 @@ function btk_arg_split() {
    eval $(btk_args "-s=:" $@)
    echo "$(IFS=$_s; echo $1)"
 }
-
-

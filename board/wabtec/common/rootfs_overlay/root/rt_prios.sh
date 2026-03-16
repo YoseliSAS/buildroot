@@ -26,4 +26,3 @@ ps -eo pid,args | tail -n +2 | while read -r pid line; do
     done
 done
 wait
-

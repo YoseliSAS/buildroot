@@ -31,12 +31,11 @@ function btk_get_path_used_space() {
       M) _block_size=$((1024 * 1024)) ;;
       G) _block_size=$((1024 * 1024 * 1024)) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    \du ${_fs_path} -s -B ${_block_size} | cut -f1
    return $?
 }
-
 
 #------------------------------------------------------------------------------
 # Get the free space available of a filesystem
@@ -46,7 +45,7 @@ function btk_get_path_used_space() {
 # STDOUT: the free space available in the filesystem
 #------------------------------------------------------------------------------
 function btk_get_fs_free_space() {
-   
+
    local _fs_path
    (( $# > 0 )) && _fs_path=$1 || _fs_path="/"
 
@@ -61,12 +60,11 @@ function btk_get_fs_free_space() {
       M) _block_size=$((1024 * 1024)) ;;
       G) _block_size=$((1024 * 1024 * 1024)) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    \df ${_fs_path} -B ${_block_size} | tail -n +2 | tr -s ' ' | tr -d '\n' |  cut -f4 -d ' '
    return $?
 }
-
 
 #------------------------------------------------------------------------------
 # Get the used space of a filesystem
@@ -77,7 +75,7 @@ function btk_get_fs_free_space() {
 #------------------------------------------------------------------------------
 function btk_get_fs_used_space() {
 
-   
+
    local _fs_path
    (( $# > 0 )) && _fs_path=$1 || _fs_path="/"
 
@@ -92,12 +90,11 @@ function btk_get_fs_used_space() {
       M) _block_size=$((1024 * 1024)) ;;
       G) _block_size=$((1024 * 1024 * 1024)) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    \df ${_fs_path} -B ${_block_size} | tail -n +2 | tr -s ' ' | tr -d '\n' |  cut -f3 -d ' '
    return $?
 }
-
 
 #------------------------------------------------------------------------------
 # Get the capacity of a filesystem
@@ -122,12 +119,11 @@ function btk_get_fs_capacity() {
       M) _block_size=$((1024 * 1024)) ;;
       G) _block_size=$((1024 * 1024 * 1024)) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    \df ${_fs_path} -B ${_block_size} | tail -n +2 | tr -s ' ' | tr -d '\n' |  cut -f2 -d ' '
    return $?
 }
-
 
 #------------------------------------------------------------------------------
 # Get the free space available of a filesystem
@@ -140,7 +136,6 @@ function btk_get_fs_free_space_kb() {
    return $?
 }
 
-
 #------------------------------------------------------------------------------
 # Get the used space of a filesystem
 # $1 : The filesystem to be tested
@@ -151,7 +146,6 @@ function btk_get_fs_used_space_kb() {
    (( $# > 0 )) && btk_get_fs_used_space $1 k || btk_get_fs_used_space / k
    return $?
 }
-
 
 #------------------------------------------------------------------------------
 # Get the capacity of a filesystem
@@ -164,7 +158,6 @@ function btk_get_fs_capacity_kb() {
    return $?
 }
 
-
 #------------------------------------------------------------------------------
 # Get the free memory available (includes buffers and caches)
 # $1 : The unit of the result: G =>gigabytes, M => Megabytes, k => Kilobytes, B => bytes.
@@ -172,13 +165,13 @@ function btk_get_fs_capacity_kb() {
 # STDOUT: the free space available (truncated)
 #------------------------------------------------------------------------------
 function btk_get_free_memory() {
-   
+
    local _unit
    (( $# > 0 )) && _unit=$1 || _unit="k"
 
    # Free memory includes buffers and the amount of cached memory
-   local let _free_memory_kb=$(cat /proc/meminfo | grep "MemFree:" | tr -s ' ' | cut -f2 -d ' ') 
-   local let _buffers_memory_kb=$(cat /proc/meminfo | grep "Buffers:" | tr -s ' ' | cut -f2 -d ' ') 
+   local let _free_memory_kb=$(cat /proc/meminfo | grep "MemFree:" | tr -s ' ' | cut -f2 -d ' ')
+   local let _buffers_memory_kb=$(cat /proc/meminfo | grep "Buffers:" | tr -s ' ' | cut -f2 -d ' ')
    local let _cached_memory_kb=$(cat /proc/meminfo | grep "^Cached:" | tr -s ' ' | cut -f2 -d ' ')
    _free_memory_kb=$(( ${_free_memory_kb} + ${_buffers_memory_kb} + ${_cached_memory_kb} ))
 
@@ -189,11 +182,10 @@ function btk_get_free_memory() {
       M) echo $(( ${_free_memory_kb} / 1024 )) ;;
       G) echo $(( ${_free_memory_kb} / ( 1024 * 1024 ) )) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    return 0
 }
-
 
 #------------------------------------------------------------------------------
 # Get the used memory
@@ -223,7 +215,6 @@ function btk_get_used_memory() {
    return 0
 }
 
-
 #------------------------------------------------------------------------------
 # Get the memory capacity
 # $1 : The unit of the result: G =>gigabytes, M => Megabytes, k => Kilobytes, B => bytes.
@@ -235,7 +226,7 @@ function btk_get_memory_capacity() {
    local _unit
    (( $# > 0 )) && _unit=$1 || _unit="k"
 
-   local let _memory_capacity_kb=$(cat /proc/meminfo | grep "MemTotal:" | tr -s ' ' | cut -f2 -d ' ') 
+   local let _memory_capacity_kb=$(cat /proc/meminfo | grep "MemTotal:" | tr -s ' ' | cut -f2 -d ' ')
    [[ $? != 0 ]] && return $?
 
    # Do the unit conversion
@@ -245,11 +236,10 @@ function btk_get_memory_capacity() {
       M) echo $(( ${_memory_capacity_kb} / 1024 )) ;;
       G) echo $(( ${_memory_capacity_kb} / ( 1024 * 1024 ) )) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    return 0
 }
-
 
 #------------------------------------------------------------------------------
 # Get the memory used by a process
@@ -268,7 +258,7 @@ function btk_get_process_memory() {
 
    local _unit
    (( $# > 1 )) && _unit=$2 || _unit="k"
-   
+
    # cut / tr combo is prefered to awk use because this way is more efficient
    local let _proces_memory_kb=$(( $( cat /proc/${_pid}/smaps \
       | grep Refere | tr -s  ' ' | cut -f2 -d ' ' | xargs | tr ' ' '+' ) ))
@@ -281,15 +271,14 @@ function btk_get_process_memory() {
       M) echo $(( ${_proces_memory_kb} / 1024 )) ;;
       G) echo $(( ${_proces_memory_kb} / ( 1024 * 1024 ) )) ;;
       *) echo "invalid unit ${_unit}" >&2 ; return 1 ;;
-   esac 
+   esac
 
    return 0
 }
 
-
 #------------------------------------------------------------------------------
 # Lock a file lock
-# The lock mecanism is based on the mkdir command: 
+# The lock mecanism is based on the mkdir command:
 # The directory creation is atomic on Linux platforms
 # $1 : The lock file name (not a path)
 #------------------------------------------------------------------------------
@@ -303,28 +292,27 @@ function btk_lock(){
       # The directory creation by using mkdir is atomic on Linux/BSD platforms
       # =>  Use the directory as lock file. try to create it with mkdir and check the result.
       while ! mkdir ${_lock_file} 2>/dev/null ; do
-         # Cannot create the directory 
+         # Cannot create the directory
          # => Another process has created the directory and thus holds the lock
          # Wait for the lock releasing (removing of the directory)
          sleep 0.2
       done
-      
-      # There is sometimes some lock issue (take a lock owned by someone). 
+
+      # There is sometimes some lock issue (take a lock owned by someone).
       # Make more robust the lock by checking the PID file.
       # A race condition could still occur but the occurence is really decreased.
-      
+
       # PID file is not present: lock is not hold by someone else
       [[ ! -f "${_lock_pid_file}" ]] && break
 
    done
-   
+
    # We got the lock: keep a trace of the owner
    # This is just for sanity checks.
    echo $$ > ${_lock_pid_file}
-   
+
    return 0
 }
-
 
 #------------------------------------------------------------------------------
 # Unlock a lock with btk_lock
@@ -354,10 +342,9 @@ function btk_unlock(){
       # Remove the directory: it will unlock pending process
       rmdir ${_lock_file}
    fi
-      
+
    return 0
 }
-
 
 #------------------------------------------------------------------------------
 # Unlock a lock with btk_lock. No check is done
@@ -376,9 +363,8 @@ function btk_unlock_no_check(){
    return 0
 }
 
-
 #------------------------------------------------------------------------------
-# Force a hard reboot on the local machine 
+# Force a hard reboot on the local machine
 # (Immediately reboot the system, without unmounting or syncing filesystems)
 # $?: 1 if the command failed
 #------------------------------------------------------------------------------
@@ -395,7 +381,6 @@ function btk_force_hard_reboot(){
    # If we arrive here: the command is not available
    return 1
 }
-
 
 #------------------------------------------------------------------------------
 # Force a shutdown on the local machine
@@ -414,7 +399,6 @@ function btk_force_shutdown(){
    # If we arrive here: the command is not available
    return 1
 }
-
 
 #------------------------------------------------------------------------------
 # Check required tools are available
@@ -441,7 +425,6 @@ function btk_check_required_tools(){
    return ${_ret}
 }
 
-
 #------------------------------------------------------------------------------
 # Flash an MTD device with a file
 # $1: The file to flash
@@ -465,7 +448,7 @@ function btk_flash_mtd_device(){
    declare -r  _expected_crc=${3}
    declare -i  _nb_blocks=0
    declare     _flash_crc=
-   
+
    # Get optional block size
    (( $# > 3 )) && _block_size=$4
 

@@ -8,7 +8,7 @@
 #------------------------------------------------------------------------------
 
 btk_import print_helpers
-   
+
 #------------------------------------------------------------------------------
 # Tests if a file exists in PATH
 # $1 : The name of the file to be tested
@@ -24,7 +24,7 @@ function btk_exists_in_path() {
 
    # parse each individual absolute path in the PATH
    IFS=$':'
-   for i in ${PATH} 
+   for i in ${PATH}
    do
       # find the file in the directory $i
       if [ -e "$i/${_test_file}" ]; then
@@ -34,10 +34,10 @@ function btk_exists_in_path() {
          _file_exists=1
       fi
    done
-   
+
    # Restore values
    IFS=${_ifs_backup}
-   
+
    return ${_file_exists}
 }
 
@@ -57,17 +57,17 @@ function btk_cksum() {
 # OUT: stdout
 #------------------------------------------------------------------------------
 btk_absolute_path() {
-    local _parent_dir=$(dirname "$1")   
+    local _parent_dir=$(dirname "$1")
     echo "$( cd -P ${_parent_dir} ; pwd)/$(basename $1)"
     return $?
-} 
+}
 
 #------------------------------------------------------------------------------
-# Return the absolute path of the current script. 
+# Return the absolute path of the current script.
 # OUT: stdout
 #------------------------------------------------------------------------------
 function btk_this_script_path() {
-   btk_absolute_path "$0" 
+   btk_absolute_path "$0"
    return $?
 }
 
@@ -83,20 +83,18 @@ function btk_exec_exists() {
    # Test the path of the file
    [[ -x "${_exec_path}" ]] && return 0
 
-   # Search in PATH. 
+   # Search in PATH.
    # "which" can return a not executable file if it is located in local directory
    _exec_path=$(which "${_exec_path}" | head -n 1)
-   if [[ $? -eq 0 ]] && [[ -x "${_exec_path}" ]] ; then 
+   if [[ $? -eq 0 ]] && [[ -x "${_exec_path}" ]] ; then
       _cr=0
    else
        # Not found
       _cr=1
    fi
-   
 
    return ${_cr}
 }
-
 
 #------------------------------------------------------------------------------
 # Source a file. Manage errors
@@ -110,7 +108,7 @@ function btk_source() {
    source ${_file_to_be_sourced}
    _cr=$?
    trap - ERR # Reset the error trap
-   
+
    return ${_cr}
 }
 
@@ -121,15 +119,15 @@ function btk_source() {
 function btk_source_optional() {
    local -r _file_to_be_sourced=$1
    local _cr=0
-   
+
    if [[ -f "${_file_to_be_sourced}" ]] ; then
       btk_source "${_file_to_be_sourced}"
       _cr=$?
-   elif btk_exists_in_path "${_file_to_be_sourced}" ; then 
+   elif btk_exists_in_path "${_file_to_be_sourced}" ; then
       btk_source "${_file_to_be_sourced}"
       _cr=$?
    fi
-   
+
    return ${_cr}
 }
 
@@ -140,16 +138,15 @@ function btk_source_optional() {
 #------------------------------------------------------------------------------
 function btk_file_size() {
    local -r _input_file=$1
-   
+
    # Sanity checks
    [[ -f "${_input_file}" ]] || return 1
-   
+
    # Use "stat -c" in order to be compliant with the busybox stat command
    \stat -c "%s" "${_input_file}"
-   
+
    return $?
 }
-
 
 #------------------------------------------------------------------------------
 # Set owner/group and access rights for a given file

@@ -33,7 +33,7 @@ tc class add dev $DEV parent 1:1 classid 1:10 htb rate ${UPLINK}kbit \
 # bulk & default class 1:20 - gets slightly less traffic,
 # and a lower priority:
 echo "Bulk & default class 1:20"
-tc class add dev $DEV parent 1:1 classid 1:20 htb rate $[9*$UPLINK/10]kbit \
+tc class add dev $DEV parent 1:1 classid 1:20 htb rate $((9 * UPLINK / 10))kbit \
    burst 6k prio 2
 
 # both get Stochastic Fairness:
@@ -44,13 +44,13 @@ tc qdisc add dev $DEV parent 1:20 handle 20: sfq perturb 10
 # TOS Minimum Delay (ssh, NOT scp) in 1:10:
 echo "TOS Minimum Delay (ssh, NOT scp) in 1:10"
 tc filter add dev $DEV parent 1:0 protocol ip prio 10 u32 \
-      match ip tos 0x10 0xff  flowid 1:10
+    match ip tos 0x10 0xff  flowid 1:10
 
 # ICMP (ip protocol 1) in the interactive class 1:10 so we
 # can do measurements & impress our friends:
 echo "ICMP (ip protocol 1) in the interactive class 1:10"
 tc filter add dev $DEV parent 1:0 protocol ip prio 10 u32 \
-	match ip protocol 1 0xff flowid 1:10
+    match ip protocol 1 0xff flowid 1:10
 
 # To speed up downloads while an upload is going on, put ACK packets in
 # the interactive class:
@@ -63,7 +63,6 @@ tc filter add dev $DEV parent 1: protocol ip prio 10 u32 \
    flowid 1:10
 
 # rest is 'non-interactive' ie 'bulk' and ends up in 1:20
-
 
 ########## downlink #############
 # attach ingress policer:

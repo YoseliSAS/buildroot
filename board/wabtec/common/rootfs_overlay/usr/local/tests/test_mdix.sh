@@ -8,7 +8,7 @@
 # interface: eth0/eth1
 # switch_mode: yes/no
 # cable_type: crossed/straight
-# Exemple : sudo ./test_mdix.sh eth1 no 
+# Exemple : sudo ./test_mdix.sh eth1 no
 #
 # Prerequis :
 # - ethtool installe

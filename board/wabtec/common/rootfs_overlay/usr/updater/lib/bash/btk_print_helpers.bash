@@ -12,11 +12,10 @@
 # Authors: rsd
 #------------------------------------------------------------------------------
 
-
 #------------------------------------------------------------------------------
 # Print function. Keep a trace in Syslog and a file.
 # Save the output in an output file if the BTK_LOG_OUTPUT variable is defined
-# $1 : The string to be logged. Optional parameter can be passed to the lower layout 
+# $1 : The string to be logged. Optional parameter can be passed to the lower layout
 # (if starts by a '-' character)
 #------------------------------------------------------------------------------
 function btk_print() {
@@ -26,9 +25,9 @@ function btk_print() {
       opt="${opt:+${opt} }"$1
       shift
       arg=$1
-   done   
+   done
    [[ "${BTK_SYSLOG_OUTPUT_DISABLED}" == "y" ]] || logger -t $(basename "$0") "$@"
-   if [[ -n "${BTK_LOG_OUTPUT}" ]] ; then 
+   if [[ -n "${BTK_LOG_OUTPUT}" ]] ; then
       echo ${opt} "$@" | tee -a ${BTK_LOG_OUTPUT}
    else
       echo ${opt} "$@"
@@ -43,10 +42,10 @@ function btk_print() {
 #------------------------------------------------------------------------------
 function btk_error() {
    btk_print "ERROR: $@ ($(caller))" 1>&2
-   
+
    # Call the hook before exiting
    ${BTK_ON_ERROR_HOOK}
-   
+
    trap - ERR
    exit 1
 }
@@ -62,4 +61,3 @@ function btk_print_with_indent() {
    shift
    btk_print "$(printf '%'$((indent*3))'s')$@"
 }
-

@@ -7,7 +7,6 @@
 # Author MHN
 #------------------------------------------------------------------------------
 
-
 #-----------------------------------------------------------------------------
 # Parameters
 # $1 : input file
@@ -20,19 +19,18 @@ export PATH=${UPDATER_HOME}/lib/bash:${UPDATER_HOME}/installers${PATH:+:${PATH}}
 # Input file type
 declare -r  inputFile=$1
 if [ "x$2" == "xjffs2" ]; then
-	declare -r	inputFSType=jffs2
+    declare -r  inputFSType=jffs2
 elif [ "x$2" == "xext2" ]; then
-	declare -r 	inputFSType=ext2
+    declare -r  inputFSType=ext2
 else
-	btk_print "RFS Image type not recognized (file $1 type $2). Try ext2..."
-	declare -r 	inputFSType=ext2
+    btk_print "RFS Image type not recognized (file $1 type $2). Try ext2..."
+    declare -r  inputFSType=ext2
 fi
 
 # Extract install dir from input file string
 fullpath="$1"
 filename="${fullpath##*/}"                              # Strip longest match of */ from start
 install_dir="${fullpath:0:${#fullpath} - ${#filename}}" # Substring from 0 thru pos of filename
-
 
 # Required tools list
 declare -r  requiredTools="tar fw_printenv fw_setenv"
@@ -68,7 +66,6 @@ source btk_flash_bank.bash
 # Helpers
 #-----------------------------------------------------------------------------
 
-
 #-----------------------------------------------------------------------------
 # Start
 #-----------------------------------------------------------------------------
@@ -96,23 +93,23 @@ readonly currentRootfsCrc16=$(fw_printenv rootfs_crc16 | sed 's:^.*=\(.*\)$:\1:'
 # Check if update is requiered
 if [[ -e ${kernelCrc16File} ]] && [[ -e ${rootfsCrc16File} ]]
 then
-	readonly newPackageCrc16=$(<${packageCrc16File});
-	#	Get new Kernel and Rootfs crc16
-	readonly newKernelCrc16=$(<${kernelCrc16File});
-	btk_print "New Kernel specified crc16: $newKernelCrc16"
-	readonly newRootfsCrc16=$(<${rootfsCrc16File});
-	btk_print "New RootFs specified crc16: $newRootfsCrc16"
+    readonly newPackageCrc16=$(<${packageCrc16File});
+    #   Get new Kernel and Rootfs crc16
+    readonly newKernelCrc16=$(<${kernelCrc16File});
+    btk_print "New Kernel specified crc16: $newKernelCrc16"
+    readonly newRootfsCrc16=$(<${rootfsCrc16File});
+    btk_print "New RootFs specified crc16: $newRootfsCrc16"
 else
-	# New software crc16 files not found, do not update
-	errorDetected=1;
-	btk_error "New software crc16 files not found <${kernelCrc16File}> <${rootfsCrc16File}> , do not update"
+    # New software crc16 files not found, do not update
+    errorDetected=1;
+    btk_error "New software crc16 files not found <${kernelCrc16File}> <${rootfsCrc16File}> , do not update"
 fi
 
-#	If Update is required, check both update file crc16 validity
+#   If Update is required, check both update file crc16 validity
 if [ ${errorDetected} == 0 ]
 then
     # If bank1 is blank or programmed, program it !
-    if [[ "${bank1Status}" == "blank" ]] || [[ "${bank1Status}" == "programmed" ]] 
+    if [[ "${bank1Status}" == "blank" ]] || [[ "${bank1Status}" == "programmed" ]]
     then
        btk_print "Bank #1 is ${bank1Status}, flash it"
        flash_bank 1
@@ -127,6 +124,4 @@ then
     fi
 fi
 
-
 exit 0
-

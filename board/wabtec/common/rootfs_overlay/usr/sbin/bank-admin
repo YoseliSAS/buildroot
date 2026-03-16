@@ -2,9 +2,8 @@
 #
 # bank-admin
 #
-# first Version:	       2014-09-23  sebastien.matz@eurogiciel.fr
+# first Version:           2014-09-23  sebastien.matz@eurogiciel.fr
 #
-
 
 BANK1_ROOTFS="/dev/mtdblock2"
 BANK2_ROOTFS="/dev/mtdblock5"
@@ -35,58 +34,48 @@ bank="0"
 echo "Root filesystem is '$root_part', bank1_status is '$bank1_status' and bank2_status is '$bank2_status'"
 if [ $root_part = $BANK1_ROOTFS ]; then
     if [ "x"$bank1_status = "xbooted" ]; then
-	echo " => bank #1"
-	bank="1"
+    echo " => bank #1"
+    bank="1"
     fi
 
     if [ "x"$bank1_status = "xconfirmed" ]; then
-	echo " => bank #1"
-	bank="1"
+    echo " => bank #1"
+    bank="1"
     fi
 fi
 
 if [ $root_part = $BANK2_ROOTFS ]; then
     if [ "x"$bank2_status = "xbooted" ]; then
-	echo " => bank #2"
-	bank="2"
+    echo " => bank #2"
+    bank="2"
     fi
 
     if [ "x"$bank2_status = "xconfirmed" ]; then
-	echo " => bank #2"
-	bank="2"
+    echo " => bank #2"
+    bank="2"
     fi
 fi
-
 
 if [ $bank = "0" ]; then
     echo " => cannot guess current bank"
 fi
 echo
 
-
 if [ "x$1" = "x--confirm" ]; then
     echo "Update U-Boot environment"
     if [ $bank = "1" ]; then
-	fw_setenv bank1_status "confirmed" && fw_setenv bank2_status "blank" && echo " => bank #1 confirmed"
-	echo
-	exit 0
-    
+    fw_setenv bank1_status "confirmed" && fw_setenv bank2_status "blank" && echo " => bank #1 confirmed"
+    echo
+    exit 0
+
     elif [ $bank = "2" ]; then
-	fw_setenv bank1_status "blank" && fw_setenv bank2_status "confirmed" && echo " => bank #2 confirmed"
-	echo
-	exit 0
+    fw_setenv bank1_status "blank" && fw_setenv bank2_status "confirmed" && echo " => bank #2 confirmed"
+    echo
+    exit 0
 
     else
-	echo " => Error"
-	echo
-	exit 1
+    echo " => Error"
+    echo
+    exit 1
     fi
 fi
-
-
-
-
-
-
-
-

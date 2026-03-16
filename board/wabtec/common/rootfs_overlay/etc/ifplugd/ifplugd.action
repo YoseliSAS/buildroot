@@ -11,11 +11,11 @@ state=$2
 case "$state" in
     up)
         logger -t ifplugd "Link detected on $interface - bringing interface up"
-        /sbin/ifup $interface
+        /sbin/ifup "$interface"
         ;;
     down)
         logger -t ifplugd "Link lost on $interface - bringing interface down"
-        /sbin/ifdown $interface
+        /sbin/ifdown "$interface"
         ;;
     *)
         logger -t ifplugd "Unknown state '$state' on $interface"

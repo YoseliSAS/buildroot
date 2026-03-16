@@ -16,15 +16,15 @@ function btk_get_ip_addr() {
 
    local net_itf
    local ret=1
-   
+
    if [[ $# -gt 0 ]] ; then
       net_itf=$1
-   
+
       /sbin/ifconfig "${net_itf}" | \grep '\<inet\>' \
          | \sed -n '1p' | \tr -s ' ' | \cut -d ' ' -f3 | \cut -d ':' -f2
       ret=$?
    fi
-   
+
    return ${ret}
 }
 
@@ -37,10 +37,10 @@ function btk_get_subnet_mask() {
 
    local net_itf
    local ret=1
-   
+
    if [[ $# -gt 0 ]] ; then
       net_itf=$1
-   
+
       # Loopback device has not broadcast field
       if [[ "${net_itf}" != "lo" ]] ; then
          /sbin/ifconfig "${net_itf}" | \grep '\<inet\>' \
@@ -52,7 +52,7 @@ function btk_get_subnet_mask() {
          ret=$?
       fi
    fi
-   
+
    return ${ret}
 }
 
@@ -65,13 +65,13 @@ function btk_get_subnet_broadcast() {
 
    local net_itf
    local ret=1
-   
+
    if [[ $# -gt 0 ]] ; then
       net_itf=$1
-   
+
       # Loopback device has not broadcast field
       if [[ "${net_itf}" == "lo" ]] ; then
-         echo "" 
+         echo ""
          ret=$?
       else
          /sbin/ifconfig "${net_itf}" | \grep '\<inet\>' \
@@ -79,7 +79,7 @@ function btk_get_subnet_broadcast() {
          ret=$?
       fi
    fi
-   
+
    return ${ret}
 }
 
@@ -92,17 +92,16 @@ function btk_get_mac_addr() {
 
    local net_itf
    local ret=1
-   
+
    if [[ $# -gt 0 ]] ; then
       net_itf=$1
-   
+
       /sbin/ifconfig ${net_itf} | \grep "${net_itf}" | \tr -s ' ' | \cut -d ' ' -f5
       ret=$?
    fi
-   
+
    return ${ret}
 }
-
 
 #------------------------------------------------------------------------------
 # Get the list of the network interface
@@ -110,13 +109,12 @@ function btk_get_mac_addr() {
 #------------------------------------------------------------------------------
 function btk_get_net_itf_list() {
    local ret=1
-   
+
    /sbin/ifconfig -a | \grep "Link" | \tr -s ' ' | \cut -f1 -d ' ' | \xargs
    ret=$?
-   
+
    return ${ret}
 }
-
 
 #------------------------------------------------------------------------------
 # Test if a network interface exists
@@ -126,13 +124,12 @@ function btk_get_net_itf_list() {
 function btk_net_itf_exists() {
    local net_itf=$1
    local ret=1
-   
+
    /sbin/ifconfig ${net_itf} 1>/dev/null 2>/dev/null
    ret=$?
-   
+
    return ${ret}
 }
-
 
 #------------------------------------------------------------------------------
 # Test if a network interface is up
@@ -141,17 +138,16 @@ function btk_net_itf_exists() {
 #------------------------------------------------------------------------------
 function btk_net_itf_is_up() {
    local net_itf=$1
-   
+
    # If interface doesn't exist the returned value is the same as if the interface wasn't up
    local ret=1
-   if btk_net_itf_exists ${net_itf}; then 
+   if btk_net_itf_exists ${net_itf}; then
       /sbin/ifconfig ${net_itf}  2>/dev/null | grep "UP" 1>/dev/null 2>/dev/null
       ret=$?
    fi
-   
+
    return ${ret}
 }
-
 
 #------------------------------------------------------------------------------
 # Test if a network interface has got ip
@@ -160,21 +156,20 @@ function btk_net_itf_is_up() {
 #------------------------------------------------------------------------------
 function btk_net_itf_has_got_ip() {
    local net_itf=$1
-   
+
    local ret=1
-   if btk_net_itf_is_up ${net_itf}; then 
+   if btk_net_itf_is_up ${net_itf}; then
       ip=$(btk_get_ip_addr ${net_itf})
       ret=$?
       if [[ ${ret} -eq 0 && -n "${ip}" ]] ; then
          ret=0
-      else 
+      else
          ret=1
       fi
    fi
-   
+
    return ${ret}
 }
-
 
 #------------------------------------------------------------------------------
 # Convert a numeric IPv4 address to an ASCII IPv4 address
@@ -188,7 +183,6 @@ function btk_ip4_itoa() {
    echo -n "$(($((${1}/256))%256))."
    echo "$((${1}%256))"
 }
-
 
 #------------------------------------------------------------------------------
 # Convert an ASCII IPv4 address to a numeric IPv4 address
@@ -205,5 +199,3 @@ function btk_ip4_atoi() {
    done
    echo ${_ip_num}
 }
-
-

@@ -42,4 +42,3 @@ cat $ubinize_cfg
 # Clean up
 #rm -f ${output_dir}/data.ubifs
 #rm -f $ubinize_cfg
-
