@@ -3,6 +3,9 @@
 # mountvolatile	This script remounts (in bind mode) some folders like /etc
 #               to make them writable but non-persistent.
 #
+# Boot optimization: Mount /etc first, run ldconfig, then mount others.
+# This way all subsequent mount commands benefit from ld.so.cache.
+#
 
 # shellcheck disable=SC2034  # Required by Buildroot SysV template; one-shot script
 DAEMON="mountvolatile"
@@ -19,17 +22,68 @@ is_mountpoint() {
 	esac
 }
 
-FOLDERS="/etc(nosuid,nodev):/var(nosuid,nodev):/home(nosuid,nodev):/run(nosuid,nodev)"
+# /etc is mounted first (for ldconfig), then others in parallel
+ETC_ENTRY="/etc(nosuid,nodev)"
+OTHER_FOLDERS="/var(nosuid,nodev):/home(nosuid,nodev):/run(nosuid,nodev)"
 VOLATILE="/volatile"
 # Use shell parameter expansion instead of forking basename
 SCRIPTNAME="${0##*/}"
 
 [ -d "$VOLATILE" ] || exit 0
 
+# Helper: mount a single overlay
+mount_overlay() {
+	local entry="$1"
+	local folder="${entry%%(*}"
+	local options="${entry#*(}" options="${options%)}"
+	local bfolder="${folder##*/}"
+	local upperdir="$VOLATILE/${bfolder}_upper"
+	local workdir="$VOLATILE/${bfolder}_work"
+
+	mkdir -p "$upperdir" "$workdir"
+	chown --reference="$folder" "$upperdir"
+	chmod --reference="$folder" "$upperdir"
+
+	local mount_opts="lowerdir=$folder,upperdir=$upperdir,workdir=$workdir"
+	[[ -n "$options" && "$options" != "$folder" ]] && mount_opts="$mount_opts,$options"
+
+	mount -t overlay overlay -o "$mount_opts" "$folder"
+}
+
 case "$1" in
 	start|"")
 		ts "$SCRIPTNAME: start"
-		IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
+
+		# Step 1: Mount /etc first (synchronously) so ldconfig can use it
+		if ! is_mountpoint "/etc"; then
+			ts "$SCRIPTNAME: mount /etc"
+			mount_overlay "$ETC_ENTRY"
+		fi
+
+		# Step 2: Setup ld.so.cache for faster library lookups
+		# Use cached version from /data if library version matches
+		if [ -x /sbin/ldconfig ]; then
+			CURRENT_VER=$(cat /etc/lib.version 2>/dev/null)
+			CACHED_VER=$(cat /data/lib.version 2>/dev/null)
+
+			if [ -n "$CURRENT_VER" ] && [ "$CURRENT_VER" = "$CACHED_VER" ] && [ -f /data/ld.so.cache ]; then
+				ts "$SCRIPTNAME: ldconfig (from cache)"
+				cp /data/ld.so.cache /etc/ld.so.cache
+			else
+				ts "$SCRIPTNAME: ldconfig (generate)"
+				/sbin/ldconfig -X
+				# Save for next boot if /data is writable
+				if [ -d /data ]; then
+					cp /etc/ld.so.cache /data/ld.so.cache
+					cp /etc/lib.version /data/lib.version
+					sync /data/ld.so.cache /data/lib.version
+				fi
+			fi
+		fi
+
+		# Step 3: Mount remaining overlays in parallel (using cached libs)
+		ts "$SCRIPTNAME: mount others (parallel)"
+		IFS=":" read -r -a FOLDERS_ARRAY <<< "$OTHER_FOLDERS"
 
 		# Build mkdir list and create all directories at once
 		MKDIRS=()
@@ -38,10 +92,9 @@ case "$1" in
 			bfolder="${folder##*/}"
 			MKDIRS+=("$VOLATILE/${bfolder}_upper" "$VOLATILE/${bfolder}_work")
 		done
-		ts "$SCRIPTNAME: mkdir all"
 		mkdir -p "${MKDIRS[@]}"
 
-		# Copy permissions from lowerdir to upperdir (overlayfs uses upperdir perms for mount point)
+		# Copy permissions from lowerdir to upperdir in parallel
 		for entry in "${FOLDERS_ARRAY[@]}"; do
 			folder="${entry%%(*}"
 			bfolder="${folder##*/}"
@@ -50,12 +103,10 @@ case "$1" in
 		done
 		wait
 
-		# Mount overlays in parallel (libs loaded once, cached for others)
-		ts "$SCRIPTNAME: mount all (parallel)"
+		# Mount overlays in parallel
 		for entry in "${FOLDERS_ARRAY[@]}"; do
-			folder="${entry%%(*}"                          # Extraction du chemin du dossier
-			options="${entry#*(}" options="${options%)}"   # Extraction des options
-
+			folder="${entry%%(*}"
+			options="${entry#*(}" options="${options%)}"
 			bfolder="${folder##*/}"
 			upperdir="$VOLATILE/${bfolder}_upper"
 			workdir="$VOLATILE/${bfolder}_work"
@@ -65,17 +116,16 @@ case "$1" in
 			fi
 
 			mount_opts="lowerdir=$folder,upperdir=$upperdir,workdir=$workdir"
-
-			# Ajouter les options de sécurité si elles existent
 			[[ -n "$options" && "$options" != "$folder" ]] && mount_opts="$mount_opts,$options"
 
 			mount -t overlay overlay -o "$mount_opts" "$folder" &
 		done
 		wait
+
 		ts "$SCRIPTNAME: end"
 		;;
 	stop)
-		IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
+		IFS=":" read -r -a FOLDERS_ARRAY <<< "$ETC_ENTRY:$OTHER_FOLDERS"
 		for entry in "${FOLDERS_ARRAY[@]}"; do
 			folder="${entry%%(*}"
 			if is_mountpoint "$folder"; then
