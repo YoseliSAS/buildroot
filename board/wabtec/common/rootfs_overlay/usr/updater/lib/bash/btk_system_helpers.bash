@@ -75,7 +75,6 @@ function btk_get_fs_free_space() {
 #------------------------------------------------------------------------------
 function btk_get_fs_used_space() {
 
-
    local _fs_path
    (( $# > 0 )) && _fs_path=$1 || _fs_path="/"
 
