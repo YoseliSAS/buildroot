@@ -20,6 +20,7 @@ glibc's minimum requirement, plus reserved space for future use.
 Enable with UCLIBC_HAS_CRYPT_R=y in configuration.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, adds crypt_r() for PAM support
 ---
  extra/Configs/Config.in | 11 ++++++++-
  include/crypt.h         | 19 +++++++++++++++

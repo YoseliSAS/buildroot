@@ -7,6 +7,7 @@ When sending websocket upgrade, a CRLF was missing between Sec-WebSocket-Accept:
 Move CRLF outside an if section
 
 Signed-off-by: Richard Beaujouan <richard.beaujouan@wabtec.com>
+Upstream: not-submitted, websocket handshake fix
 ---
  lib/roles/ws/server-ws.c | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)

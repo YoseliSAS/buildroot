@@ -21,6 +21,7 @@ Fix by:
    consistent layout between host and target
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, m68k cross-compilation fix
 ---
  extra/locale/gen_ldc.c      | 15 ++++++++++++++-
  extra/locale/locale_mmap.h  |  4 ++--

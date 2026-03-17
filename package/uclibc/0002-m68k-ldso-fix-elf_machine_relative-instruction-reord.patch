@@ -27,6 +27,7 @@ Note: Building uClibc with -fno-schedule-insns -fno-schedule-insns2 is
 also recommended on m68k to prevent instruction scheduling issues.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, m68k instruction reordering fix
 ---
  ldso/ldso/m68k/dl-sysdep.h | 14 ++++++++------
  1 file changed, 8 insertions(+), 6 deletions(-)
