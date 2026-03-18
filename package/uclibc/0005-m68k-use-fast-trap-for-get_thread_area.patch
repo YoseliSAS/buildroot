@@ -20,6 +20,7 @@ The kernel's fast_get_tp handler (entry.S) reads thread_info->tp_value
 and returns it in d0 via RTE, without the full syscall machinery.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, m68k performance optimization
 ---
  ldso/ldso/m68k/m68k_read_tp.S | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)

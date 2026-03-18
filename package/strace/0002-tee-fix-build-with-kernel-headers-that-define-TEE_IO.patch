@@ -14,6 +14,7 @@ failures when compiling strace against newer kernel headers:
 Make the local definitions conditional to avoid redefinition errors.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, kernel headers compatibility
 ---
  src/tee.c | 4 ++++
  1 file changed, 4 insertions(+)

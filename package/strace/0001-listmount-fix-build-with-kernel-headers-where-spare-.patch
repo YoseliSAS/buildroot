@@ -14,6 +14,7 @@ compiling strace against newer kernel headers:
 Use the new field name 'mnt_ns_fd' which is the current upstream name.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, kernel headers compatibility
 ---
  src/listmount.c | 4 ++--
  src/statmount.c | 4 ++--

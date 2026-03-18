@@ -1,7 +1,7 @@
 From 9d75a894ed93a8b4aa6c93c7010444368d26c57a Mon Sep 17 00:00:00 2001
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Date: Mon, 23 Feb 2026 07:54:28 +0100
-Subject: [PATCH 1/4] entry: Add uClibc compatibility for crypt()
+Subject: [PATCH] entry: Add uClibc compatibility for crypt()
 
 uClibc-ng does not provide crypt_r() or struct crypt_data, which are
 glibc extensions for thread-safe password hashing.
@@ -11,6 +11,7 @@ This is safe in PAM context as password validation calls are
 serialized by the PAM framework.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, uClibc-ng and m68k compatibility
 ---
  src/entry.c | 15 +++++++++++++++
  1 file changed, 15 insertions(+)

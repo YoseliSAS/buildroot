@@ -15,6 +15,7 @@ programmatically using the org.gnu.gdb.coldfire.core and
 org.gnu.gdb.coldfire.fp features.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, m68k ColdFire specific
 ---
  gdbserver/Makefile.in         |   1 +
  gdbserver/configure.srv       |  14 +----

@@ -1,7 +1,7 @@
 From 046f81a19986ed8fd095d32978e4001f5ae80ade Mon Sep 17 00:00:00 2001
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Date: Mon, 23 Feb 2026 07:54:47 +0100
-Subject: [PATCH 2/4] policy: Add uClibc compatibility for innetgr()
+Subject: [PATCH] policy: Add uClibc compatibility for innetgr()
 
 uClibc-ng does not provide innetgr() which is used for NIS netgroup
 lookups. Stub it to always return false when building with uClibc.
@@ -11,6 +11,7 @@ This effectively disables netgroup-based policy matching (e.g.,
 matching still works normally.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, uClibc-ng and m68k compatibility
 ---
  src/policy.c | 9 +++++++++
  1 file changed, 9 insertions(+)

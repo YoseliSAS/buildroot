@@ -39,6 +39,7 @@ DEFAULT_CRC16_TABLE = (
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
 )
 
+
 def calculate_crc16(crc, data, crc_table=DEFAULT_CRC16_TABLE):
     for ch in data:
         crc = (crc_table[((crc >> 8) ^ ch) & 0xff] ^ (crc << 8)) & 0xffff
@@ -56,8 +57,8 @@ def main():
         elif not a.startswith('-'):
             filenames += glob.glob(a)
 
-    print("Debug: Filenames: %s" % filenames)    
-    
+    print("Debug: Filenames: %s" % filenames)
+
     for fn in filenames:
         if not os.path.exists(fn):
             print("Error: File %s does not exist" % fn)
@@ -77,8 +78,6 @@ def main():
             with open(fn2, "w") as f:
                 f.write("%04x\n" % crc16)
 
+
 if __name__ == '__main__':
     main()
-
-
-

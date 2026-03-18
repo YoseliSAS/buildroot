@@ -1,7 +1,7 @@
 From b42b43c19bca9caf38b22d2036b3e3b59be8e56b Mon Sep 17 00:00:00 2001
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Date: Mon, 23 Feb 2026 07:55:24 +0100
-Subject: [PATCH 3/4] build: Make hardening flags conditional
+Subject: [PATCH] build: Make hardening flags conditional
 
 Not all toolchains support -fstack-protector-all (requires libssp or
 libc SSP support) or -pie (not supported on some architectures like
@@ -11,6 +11,7 @@ Add configure checks for these flags and only use them if supported.
 This improves portability to embedded systems with minimal toolchains.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, uClibc-ng and m68k compatibility
 ---
  configure.ac    | 24 ++++++++++++++++++++++++
  src/Makefile.am |  6 +++---

@@ -1,7 +1,7 @@
 From c4649f2cf7219493d12eac0bf0bcf07826c30c68 Mon Sep 17 00:00:00 2001
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Date: Mon, 23 Feb 2026 08:42:54 +0100
-Subject: [PATCH 4/4] build: Use AC_SEARCH_LIBS for crypt
+Subject: [PATCH] build: Use AC_SEARCH_LIBS for crypt
 
 uClibc-ng provides crypt() and crypt_r() in libc.so directly,
 not in a separate libcrypt.so. Use AC_SEARCH_LIBS which checks
@@ -10,6 +10,7 @@ libc first before falling back to -lcrypt.
 This avoids statically linking libcrypt.a into PAM modules.
 
 Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Upstream: not-submitted, uClibc-ng and m68k compatibility
 ---
  configure.ac    | 2 +-
  src/Makefile.am | 2 +-
