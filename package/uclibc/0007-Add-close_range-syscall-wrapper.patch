@@ -1,0 +1,60 @@
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Subject: [PATCH] Add close_range() syscall wrapper
+
+Software like linux-pam and GLib use close_range() to efficiently
+close all file descriptors in a range. Without this wrapper, they
+fall back to iterating over all possible file descriptors (up to
+4096) and calling close() on each one individually, which takes
+~3 minutes on a Coldfire m68k at 250 MHz.
+
+The close_range() syscall is available since Linux 5.9.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ include/unistd.h                        |  5 +++++
+ libc/sysdeps/linux/common/close_range.c | 25 +++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+)
+ create mode 100644 libc/sysdeps/linux/common/close_range.c
+
+--- a/include/unistd.h
++++ b/include/unistd.h
+@@ -1258,6 +1258,11 @@
+ # endif
+ #endif
+
++#ifdef _GNU_SOURCE
++extern int close_range(unsigned int __first, unsigned int __last,
++		       unsigned int __flags) __THROW;
++#endif
++
+ __END_DECLS
+
+
+--- /dev/null
++++ b/libc/sysdeps/linux/common/close_range.c
+@@ -0,0 +1,25 @@
++/* Linux close_range implementation for uClibc-ng.
++   Copyright (C) 2026 uClibc-ng contributors.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <unistd.h>
++#include <sysdep.h>
++
++int
++close_range (unsigned int first, unsigned int last, unsigned int flags)
++{
++  return INLINE_SYSCALL (close_range, 3, first, last, flags);
++}
