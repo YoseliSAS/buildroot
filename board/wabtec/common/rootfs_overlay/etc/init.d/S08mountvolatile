@@ -32,14 +32,14 @@ case "$1" in
 		IFS=":" read -r -a FOLDERS_ARRAY <<< "$FOLDERS"
 
 		# Build mkdir list and create all directories at once
-		MKDIRS=""
+		MKDIRS=()
 		for entry in "${FOLDERS_ARRAY[@]}"; do
 			folder="${entry%%(*}"
 			bfolder="${folder##*/}"
-			MKDIRS="$MKDIRS $VOLATILE/${bfolder}_upper $VOLATILE/${bfolder}_work"
+			MKDIRS+=("$VOLATILE/${bfolder}_upper" "$VOLATILE/${bfolder}_work")
 		done
 		ts "$SCRIPTNAME: mkdir all"
-		mkdir -p "$MKDIRS"
+		mkdir -p "${MKDIRS[@]}"
 
 		# Copy permissions from lowerdir to upperdir (overlayfs uses upperdir perms for mount point)
 		for entry in "${FOLDERS_ARRAY[@]}"; do
