@@ -1,5 +1,6 @@
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Subject: [PATCH] Add close_range() syscall wrapper
+Upstream: Not yet submitted
 
 Software like linux-pam and GLib use close_range() to efficiently
 close all file descriptors in a range. Without this wrapper, they
