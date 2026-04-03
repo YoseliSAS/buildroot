@@ -23,7 +23,8 @@ jffs2_opts="$@"
 echo "JFFS2 options: $jffs2_opts"
 
 # Get the basedir of the script from the $0 argument
-basedir=$(dirname $0)
+#basedir=$(dirname $0)
+basedir="$(cd "$(dirname "$0")" && pwd)"
 echo "basedir=$basedir"
 
 m68k-linux-objcopy -O binary ${images_dir}/vmlinux ${images_dir}/image.bin
