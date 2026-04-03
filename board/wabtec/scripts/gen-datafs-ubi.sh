@@ -159,4 +159,3 @@ info " -> ${images_dir}/data.ubi"
 ###############################################################################
 # rm -f "${output_dir}/data.ubifs"
 # rm -f "$ubinize_cfg"
-
