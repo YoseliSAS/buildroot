@@ -1,51 +1,130 @@
 #!/bin/sh
+#
+# Post-image processing:
+#  - generate uImage
+#  - pad uImage to JFFS2 erase block size
+#  - generate data filesystems
+#  - compute CRC16 and CRC32
+#
 
-# This script is executed to add padding to the uImage to align it on
-# BR2_TARGET_ROOTFS_JFFS2_EBSIZE.
+###############################################################################
+# Safety
+###############################################################################
+set -eu
 
-# Once the padding is done, it calculates crc16 and crc32 checksums for the uImage.
 
-# Display the arguments passed to the script
-echo "post-image.sh $@"
+###############################################################################
+# Helpers
+###############################################################################
+fatal() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
 
-# Example: post-image.sh /home/jm/Projects/wabtec/buildroot/output/images /home/jm/Projects/wabtec/buildroot/configs/wabtec_dlcnext_defconfig
+info() {
+    echo "[INFO] $*"
+}
+
+require_exec() {
+    [ -x "$1" ] || fatal "Missing or non-executable: $1"
+}
+
+###############################################################################
+# Arguments
+###############################################################################
+# Display the arguments passed to the script (for traceability/debug)
+echo "post-image.sh $*"
+
+# Example:
+# post-image.sh \
+#   /home/user/project/output/images \
+#   -e 0x20000 --with-xattr -p -b -n
+#
 # First argument is the output/images directory
+# Next arguments are the JFFS2 options in the form:
+#   "-e 0x20000 --with-xattr -p -b -n"
+#
+# JFFS2 options are all the arguments passed to the script after $1
+# and are forwarded verbatim to the downstream scripts.
+
+if [ "$#" -lt 1 ]; then
+    fatal "Usage: $0 <images_dir> [jffs2 options]"
+fi
+
 images_dir=$1
-
-# output directory must be fouund from the images directory
-output_dir=$(dirname $images_dir)
-
-# Next argument is the JFFS options in the form "-e 0x20000 --with-xattr -p -b -n"
-#jffs2 options are all the arguments passed to the script after $1
 shift
-jffs2_opts="$@"
+jffs2_opts="$*"
 
-echo "JFFS2 options: $jffs2_opts"
+info "JFFS2 options: $jffs2_opts"
 
-# Get the basedir of the script from the $0 argument
-#basedir=$(dirname $0)
-basedir="$(cd "$(dirname "$0")" && pwd)"
-echo "basedir=$basedir"
+###############################################################################
+# Paths
+###############################################################################
+# Resolve script location (do not rely on CWD)
+script_dir="$(cd "$(dirname "$0")" && pwd -P)"
 
-m68k-linux-objcopy -O binary ${images_dir}/vmlinux ${images_dir}/image.bin
-mkimage -A m68k -O linux -T kernel -C none -a 0x41002000 -e 0x41002000 -n "Linux-54418" -d ${images_dir}/image.bin ${images_dir}/uImage
+# Output directory is derived from the images directory
+output_dir="$(cd "${images_dir}/.." && pwd -P)"
 
-${basedir}/pad-uimage.sh $images_dir $jffs2_opts
-${basedir}/gen-datafs.sh $output_dir $jffs2_opts
-${basedir}/gen-datafs-ubi.sh $output_dir $jffs2_opts
+###############################################################################
+# Preconditions
+###############################################################################
+[ -d "$images_dir" ] || fatal "Missing images directory: $images_dir"
 
-# Calculate the crc16 and crc32 checksums for the uImage
-# crc16:
-# @$(call MESSAGE,"Generating CRC16 checksum files")
-# @rm -f $(BINARIES_DIR)/*.crc16
-# @rm -f $(BINARIES_DIR)/*.crc32
-# @python support/scripts/crc16.py -w $(BINARIES_DIR)/*
-# @$(call MESSAGE,"Generating CRC32 checksum files for uImage")
-# @support/scripts/mkCrc32.sh $(BINARIES_DIR)
+require_exec "${script_dir}/pad-uimage.sh"
+require_exec "${script_dir}/gen-datafs.sh"
+require_exec "${script_dir}/gen-datafs-ubi.sh"
 
-echo "Generating CRC16 checksum files"
-rm -f "$images_dir"/*.crc16
-rm -f "$images_dir"/*.crc32
-python3 ${basedir}/crc16.py -w "${images_dir}/*"
-echo "Generating CRC32 checksum files for uImage"
-${basedir}/mkCrc32.sh "$images_dir"
+command -v m68k-linux-objcopy >/dev/null 2>&1 || fatal "m68k-linux-objcopy not found"
+command -v mkimage >/dev/null 2>&1 || fatal "mkimage not found"
+command -v python3 >/dev/null 2>&1 || fatal "python3 not found"
+
+###############################################################################
+# Generate uImage
+###############################################################################
+info "Generating uImage"
+
+m68k-linux-objcopy \
+    -O binary \
+    "${images_dir}/vmlinux" \
+    "${images_dir}/image.bin"
+
+mkimage \
+    -A m68k \
+    -O linux \
+    -T kernel \
+    -C none \
+    -a 0x41002000 \
+    -e 0x41002000 \
+    -n "Linux-54418" \
+    -d "${images_dir}/image.bin" \
+    "${images_dir}/uImage"
+
+###############################################################################
+# Post-processing
+###############################################################################
+# Padding and filesystem generation reuse the same JFFS2 options
+info "Padding uImage"
+# shellcheck disable=SC2086
+"${script_dir}/pad-uimage.sh" "$images_dir" $jffs2_opts
+
+info "Generating JFFS2 data filesystem"
+# shellcheck disable=SC2086
+"${script_dir}/gen-datafs.sh" "$output_dir" $jffs2_opts
+
+info "Generating UBI data filesystem"
+# shellcheck disable=SC2086
+"${script_dir}/gen-datafs-ubi.sh" "$output_dir" $jffs2_opts
+
+###############################################################################
+# Checksums
+###############################################################################
+info "Generating CRC16 checksum files"
+rm -f "${images_dir}"/*.crc16 "${images_dir}"/*.crc32
+
+python3 "${script_dir}/crc16.py" -w "${images_dir}"/*
+
+info "Generating CRC32 checksum files for uImage"
+"${script_dir}/mkCrc32.sh" "$images_dir"
+
+info "Post-image processing complete"
