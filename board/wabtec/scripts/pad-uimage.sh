@@ -1,51 +1,102 @@
 #!/bin/sh
+#
+# Add padding to uImage to align it on the JFFS2 erase block size
+# (BR2_TARGET_ROOTFS_JFFS2_EBSIZE)- The uImage is padded with 0x00 bytes
+#
 
-# This script is executed to add padding to the uImage to align it on
-# BR2_TARGET_ROOTFS_JFFS2_EBSIZE.
+###############################################################################
+# Safety
+###############################################################################
+set -eu
+
+###############################################################################
+# Helpers
+###############################################################################
+fatal() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+info() {
+    echo "[INFO] $*"
+}
+
+###############################################################################
+# Arguments
+###############################################################################
+if [ "$#" -lt 1 ]; then
+    fatal "Usage: $0 <output_dir> [mkfs.jffs2 options]"
+fi
 
 output_dir=$1
 shift
-jffs2_opts=$@
 
-echo "jffs2_opts=$jffs2_opts"
+###############################################################################
+# Resolve script directory (for consistency with other scripts)
+###############################################################################
+#script_dir="$(cd "$(dirname "$0")" && pwd -P)"
 
-basedir=$(dirname $0)
-
-# If there is no value, then use the default "0x20000"
-# It should be in the jffs2_opts in the form "-e 0x20000"
+###############################################################################
+# Defaults
+###############################################################################
+# Default erase block size if not found in arguments
 ebsize="0x20000"
-for arg in $jffs2_opts
-do
-    if [ "$arg" = "-e" ]; then
-        ebsize=$(echo $jffs2_opts | cut -d' ' -f2)
-    fi
-done
-echo "ebsize=$ebsize"
 
+###############################################################################
+# Parse jffs2 options to extract erase block size (-e)
+###############################################################################
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -e)
+            shift
+            [ "$#" -gt 0 ] || fatal "Missing value after -e"
+            ebsize=$1
+            ;;
+    esac
+    shift
+done
+
+info "Erase block size: ${ebsize}"
+
+###############################################################################
+# Files
+###############################################################################
 uimage="${output_dir}/uImage"
 
-# Add padding to the uImage to align it on BR2_TARGET_ROOTFS_JFFS2_EBSIZE
-# The uImage is padded with 0x00 bytes
+[ -f "$uimage" ] || fatal "Missing uImage: $uimage"
 
-# Get the size of the uImage
-uimage_size=$(stat -c%s "$uimage")
+###############################################################################
+# Get uImage size
+###############################################################################
+uimage_size=$(stat -c '%s' "$uimage")
 
-# Check if the current size is already a multiple of ebsize
-if [ $(($uimage_size % $ebsize)) -eq 0 ]; then
-    echo "No padding needed"
-else
-    # Display the size before padding
-    echo "Size before padding: $uimage_size"
+info "uImage size before padding: $uimage_size"
 
-    # Calculate the padding size
-    padding_size=$(($ebsize - $uimage_size % $ebsize))
+###############################################################################
+# Compute padding
+###############################################################################
+# Convert ebsize (hex) to decimal for arithmetic
+ebsize_dec=$((ebsize))
 
-    # Add padding to the uImage
-    dd if=/dev/zero bs=1 count=$padding_size >> "$uimage"
+remainder=$((uimage_size % ebsize_dec))
 
-    # Get the new size of the uImage
-    new_uimage_size=$(stat -c%s "$uimage")
-
-    # Display the size after padding
-    echo "Size after padding: $new_uimage_size"
+if [ "$remainder" -eq 0 ]; then
+    info "No padding needed"
+    exit 0
 fi
+
+padding_size=$((ebsize_dec - remainder))
+
+info "Padding size: $padding_size bytes"
+
+###############################################################################
+# Apply padding
+###############################################################################
+dd if=/dev/zero bs=1 count="$padding_size" >>"$uimage" status=none
+
+###############################################################################
+# Verify result
+###############################################################################
+new_size=$(stat -c '%s' "$uimage")
+
+info "uImage size after padding: $new_size"
