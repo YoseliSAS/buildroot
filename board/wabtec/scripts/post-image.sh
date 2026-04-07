@@ -52,9 +52,9 @@ fi
 
 images_dir=$1
 shift
-jffs2_opts="$*"
+# "$@" now contains only the mkfs.jffs2 options
 
-info "JFFS2 options: $jffs2_opts"
+info "JFFS2 options: $(printf '%s ' "$@")"
 
 ###############################################################################
 # Paths
@@ -104,16 +104,13 @@ mkimage \
 ###############################################################################
 # Padding and filesystem generation reuse the same JFFS2 options
 info "Padding uImage"
-# shellcheck disable=SC2086
-"${script_dir}/pad-uimage.sh" "$images_dir" $jffs2_opts
+"${script_dir}/pad-uimage.sh" "$images_dir" "$@"
 
 info "Generating JFFS2 data filesystem"
-# shellcheck disable=SC2086
-"${script_dir}/gen-datafs.sh" "$output_dir" $jffs2_opts
+"${script_dir}/gen-datafs.sh" "$output_dir" "$@"
 
 info "Generating UBI data filesystem"
-# shellcheck disable=SC2086
-"${script_dir}/gen-datafs-ubi.sh" "$output_dir" $jffs2_opts
+"${script_dir}/gen-datafs-ubi.sh" "$output_dir" "$@"
 
 ###############################################################################
 # Checksums
