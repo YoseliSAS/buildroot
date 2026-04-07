@@ -25,7 +25,7 @@ info() {
 # Arguments
 ###############################################################################
 if [ "$#" -lt 1 ]; then
-    fatal "Usage: $0 <output_dir> [mkfs.jffs2 options]"
+    fatal "Usage: $0 <output_dir> [-e ebsize]"
 fi
 
 output_dir=$1
@@ -78,6 +78,10 @@ info "uImage size before padding: $uimage_size"
 # Convert ebsize (hex) to decimal for arithmetic
 ebsize_dec=$((ebsize))
 
+if [ "$ebsize_dec" -le 0 ]; then
+    fatal "Invalid erase block size: $ebsize"
+fi
+
 remainder=$((uimage_size % ebsize_dec))
 
 if [ "$remainder" -eq 0 ]; then
@@ -92,7 +96,7 @@ info "Padding size: $padding_size bytes"
 ###############################################################################
 # Apply padding
 ###############################################################################
-dd if=/dev/zero bs=1 count="$padding_size" >>"$uimage" status=none
+dd if=/dev/zero bs="$padding_size" count=1 >>"$uimage" status=none
 
 ###############################################################################
 # Verify result
