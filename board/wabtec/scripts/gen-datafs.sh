@@ -42,7 +42,7 @@ fi
 
 output_dir=$1
 shift
-mkfs_opts="$*"
+# "$@" now contains only the mkfs.jffs2 options
 
 ###############################################################################
 # Path resolution
@@ -76,23 +76,14 @@ require_file "${common_dir}/device_table_data.txt"
 ###############################################################################
 sumtool_opts=""
 
-for opt in $mkfs_opts; do
-    case "$opt" in
-        --with-xattr)
-            ;; # ignored by sumtool
-        -s)
-            skip_next=1
-            ;;
-        0x*|[0-9]*)
-            [ "${skip_next:-0}" = "1" ] && skip_next=0 || sumtool_opts="$sumtool_opts $opt"
-            ;;
-        *)
-            sumtool_opts="$sumtool_opts $opt"
-            ;;
-    esac
-done
+sumtool_opts=$(
+    printf '%s ' "$@" |
+    sed -E \
+        -e 's/--with-xattr([[:space:]]|$)/\1/g' \
+        -e 's/-s[[:space:]]+0x[0-9a-fA-F]+//g'
+)
 
-info "mkfs.jffs2 opts : $mkfs_opts"
+info "mkfs.jffs2 opts : $(printf '%s ' "$@")"
 info "sumtool opts    : $sumtool_opts"
 
 ###############################################################################
@@ -122,7 +113,7 @@ echo "[FAKEROOT] Create device nodes"
 
 echo "[FAKEROOT] Create JFFS2 image (no summary)"
 "${host_dir}/sbin/mkfs.jffs2" \
-    ${mkfs_opts} \
+    ${@+"$@"} \
     -d "${work_dir}/data" \
     -o "${output_dir}/data.jffs2.nosummary"
 
