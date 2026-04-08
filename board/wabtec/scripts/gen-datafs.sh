@@ -55,7 +55,7 @@ common_dir="${board_dir}/common"
 host_dir="${output_dir}/host"
 images_dir="${output_dir}/images"
 work_dir="${output_dir}/slash-data-custom"
-fakeroot_script="${work_dir}/fakeroot2.sh"
+fakeroot_script="${work_dir}/fakeroot.sh"
 
 ###############################################################################
 # Preconditions
