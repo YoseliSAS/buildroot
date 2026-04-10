@@ -2,12 +2,26 @@
 #
 # Create a JFFS2 /data filesystem image from a skeleton, using fakeroot
 #
+# Reproducible version:
+#  - fixed SOURCE_DATE_EPOCH
+#  - normalized timestamps
+#  - stable file ordering
+#
 
 ###############################################################################
 # Safety settings
 ###############################################################################
-
 set -eu
+
+###############################################################################
+# Reproducibility settings
+###############################################################################
+# Fixed timestamp (2000-01-01 00:00:00 UTC)
+SOURCE_DATE_EPOCH=946684800
+export SOURCE_DATE_EPOCH
+
+# Stable locale for deterministic ordering
+export LC_ALL=C
 
 ###############################################################################
 # Helpers
@@ -53,23 +67,27 @@ board_dir="$(cd "${script_dir}/.." && pwd -P)"
 common_dir="${board_dir}/common"
 
 host_dir="${output_dir}/host"
-images_dir="${output_dir}/images"
 work_dir="${output_dir}/slash-data-custom"
+images_dir="${output_dir}/images"
+
 fakeroot_script="${work_dir}/fakeroot.sh"
+
+skeleton_dir="${common_dir}/skeleton_data"
+device_table="${common_dir}/device_table_data.txt"
 
 ###############################################################################
 # Preconditions
 ###############################################################################
 require_dir "$output_dir"
 require_dir "$common_dir"
-require_dir "${common_dir}/skeleton_data"
+require_dir "$skeleton_dir"
+
+require_file "$device_table"
 
 require_exec "${host_dir}/bin/fakeroot"
 require_exec "${host_dir}/usr/bin/makedevs"
 require_exec "${host_dir}/sbin/mkfs.jffs2"
 require_exec "${host_dir}/sbin/sumtool"
-
-require_file "${common_dir}/device_table_data.txt"
 
 ###############################################################################
 # Prepare sumtool options (filtered mkfs options)
@@ -94,6 +112,7 @@ info "Preparing working directory"
 rm -rf "$work_dir"
 mkdir -p "$work_dir"
 
+# Copy skeleton with metadata preserved
 cp -a "${common_dir}/skeleton_data" "${work_dir}/data"
 
 ###############################################################################
@@ -103,12 +122,18 @@ cat > "$fakeroot_script" <<EOF
 #!/bin/sh
 set -e
 
+export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
+export LC_ALL=C
+
 echo "[FAKEROOT] Fix ownership"
 chown -R 0:0 "${work_dir}/data"
 
+echo "[FAKEROOT] Normalize timestamps"
+find "${work_dir}/data" -exec touch -h -d "@\${SOURCE_DATE_EPOCH}" {} +
+
 echo "[FAKEROOT] Create device nodes"
 "${host_dir}/usr/bin/makedevs" \
-    -d "${common_dir}/device_table_data.txt" \
+    -d "${device_table}" \
     "${work_dir}/data"
 
 echo "[FAKEROOT] Create JFFS2 image (no summary)"
@@ -134,7 +159,7 @@ chmod 0755 "$fakeroot_script"
 ###############################################################################
 # Execute fakeroot
 ###############################################################################
-info "Running fakeroot"
+info "Running fakeroot script"
 "${host_dir}/bin/fakeroot" -- "$fakeroot_script"
 
 info "JFFS2 data image successfully generated:"
