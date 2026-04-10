@@ -91,15 +91,9 @@ else
 COREUTILS_CONF_OPTS += --without-selinux
 endif
 
-# m68k: Disable OpenSSL to avoid boot-time crashes due to libcrypto
-# initialization issues. Coreutils will use built-in hash implementations.
-ifeq ($(BR2_m68k),y)
-COREUTILS_CONF_OPTS += --without-openssl
-else
 ifeq ($(BR2_PACKAGE_OPENSSL),y)
 COREUTILS_CONF_OPTS += --with-openssl=yes
 COREUTILS_DEPENDENCIES += openssl
-endif
 endif
 
 ifeq ($(BR2_ROOTFS_MERGED_USR),)

@@ -33,9 +33,7 @@ ifeq ($(BR2_USE_MMU),)
 PCRE2_CONF_OPTS += --disable-pcre2grep-callout
 endif
 
-ifeq ($(BR2_m68k_cf),y)
-PCRE2_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -mlong-jump-table-offsets"
-endif
+# m68k -mlong-jump-table-offsets is now applied globally in Makefile.in
 
 # needed for qt6base
 HOST_PCRE2_CONF_OPTS = --enable-pcre2-16

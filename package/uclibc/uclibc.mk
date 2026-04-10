@@ -390,11 +390,7 @@ ifeq ($(BR2_TOOLCHAIN_GCC_AT_LEAST_4_7),y)
 UCLIBC_EXTRA_CFLAGS += -fno-lto
 endif
 
-# m68k: Disable instruction scheduling to prevent GCC from reordering
-# memory accesses in elf_machine_relative (fixes R_68K_RELATIVE bug)
-ifeq ($(UCLIBC_TARGET_ARCH),m68k)
-UCLIBC_EXTRA_CFLAGS += -fno-schedule-insns -fno-schedule-insns2
-endif
+# m68k -fno-schedule-insns is now applied globally in Makefile.in
 
 UCLIBC_MAKE_FLAGS = \
 	ARCH="$(UCLIBC_TARGET_ARCH)" \
