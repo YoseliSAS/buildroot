@@ -308,10 +308,19 @@ add_user_to_group() {
 
 #----------------------------------------------------------------------------
 # Encode a password
+# When SOURCE_DATE_EPOCH is set, use a deterministic salt derived from the
+# username so that builds are reproducible. Otherwise use a random salt.
 encode_password() {
     local passwd="${1}"
+    local username="${2:-}"
 
-    mkpasswd -m "${PASSWD_METHOD}" "${passwd}"
+    if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ -n "${username}" ]; then
+        local salt
+        salt="$(printf '%s' "${username}" | md5sum | cut -c1-16)"
+        mkpasswd -m "${PASSWD_METHOD}" -S "${salt}" "${passwd}"
+    else
+        mkpasswd -m "${PASSWD_METHOD}" "${passwd}"
+    fi
 }
 
 #----------------------------------------------------------------------------
@@ -360,10 +369,10 @@ add_one_user() {
             _passwd=""
             ;;
         !=*)
-            _passwd='!'"$( encode_password "${passwd#!=}" )"
+            _passwd='!'"$( encode_password "${passwd#!=}" "${username}" )"
             ;;
         =*)
-            _passwd="$( encode_password "${passwd#=}" )"
+            _passwd="$( encode_password "${passwd#=}" "${username}" )"
             ;;
         *)
             _passwd="${passwd}"
