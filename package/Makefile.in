@@ -211,6 +211,17 @@ TARGET_FCFLAGS = $(TARGET_ABI) $(TARGET_OPTIMIZATION) $(TARGET_DEBUGGING)
 ifeq ($(BR2_m68k_cf),y)
 TARGET_CFLAGS += -fno-dwarf2-cfi-asm
 TARGET_CXXFLAGS += -fno-dwarf2-cfi-asm
+# GCC's instruction scheduler reorders memory accesses on m68k in ways
+# that break code with sequential memory ordering assumptions. This has
+# been observed to cause runtime failures in uClibc-ng's dynamic linker
+# (elf_machine_relative) and in OpenSSL's internal state after fork().
+TARGET_CFLAGS += -fno-schedule-insns -fno-schedule-insns2
+TARGET_CXXFLAGS += -fno-schedule-insns -fno-schedule-insns2
+# Coldfire uses 16-bit offsets for switch statement jump tables by default.
+# Large functions (e.g. pcre2_match, nftables) overflow this limit, causing
+# "Tried to convert PC relative branch to absolute jump" assembler errors.
+TARGET_CFLAGS += -mlong-jump-table-offsets
+TARGET_CXXFLAGS += -mlong-jump-table-offsets
 endif
 
 ifeq ($(BR2_BINFMT_FLAT),y)
