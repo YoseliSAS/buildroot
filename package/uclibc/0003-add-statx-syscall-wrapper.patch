@@ -1,0 +1,65 @@
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Sun, 9 Mar 2026 09:00:00 +0100
+Subject: [PATCH] libc: add statx() syscall wrapper and enable for m68k
+
+Add the statx() system call wrapper for architectures that support
+the __NR_statx syscall number. Enable __UCLIBC_HAVE_STATX__ for m68k
+so that struct statx is exposed in sys/stat.h.
+
+This is needed by modern applications (including BusyBox) that use
+statx() for file status information.
+
+Adapted from glibc's statx implementation for uClibc-ng.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ libc/sysdeps/linux/common/statx.c                    | 30 ++++++++++++++++++
+ libc/sysdeps/linux/m68k/bits/uClibc_arch_features.h  |  3 ++
+ 2 files changed, 33 insertions(+)
+ create mode 100644 libc/sysdeps/linux/common/statx.c
+
+--- /dev/null
++++ b/libc/sysdeps/linux/common/statx.c
+@@ -0,0 +1,30 @@
++/* Linux statx implementation. modified for uClibc-ng.
++   Copyright (C) 2018-2026 Free Software Foundation, Inc.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <errno.h>
++#include <sys/stat.h>
++#include <sysdep.h>
++
++#if defined(__NR_statx)
++int
++statx (int fd, const char *path, int flags,
++       unsigned int mask, struct statx *buf)
++{
++  int ret = INLINE_SYSCALL (statx, 5, fd, path, flags, mask, buf);
++  return ret;
++}
++#endif
+--- a/libc/sysdeps/linux/m68k/bits/uClibc_arch_features.h
++++ b/libc/sysdeps/linux/m68k/bits/uClibc_arch_features.h
+@@ -37,6 +37,9 @@
+ /* define if target supports CFI pseudo ops */
+ #undef __UCLIBC_HAVE_ASM_CFI_DIRECTIVES__
+
++/* define to enable statx() support */
++#define __UCLIBC_HAVE_STATX__
++
+ /* define if target supports IEEE signed zero floats */
+ #define __UCLIBC_HAVE_SIGNED_ZERO__
+

@@ -28,7 +28,8 @@ LIBOPENSSL_CFLAGS += -DOPENSSL_SMALL_FOOTPRINT
 # -fno-schedule-insns: GCC's instruction scheduler on m68k can reorder memory
 # accesses in ways that break OpenSSL's internal state, especially after fork().
 # This is the same issue that affected uclibc's elf_machine_relative.
-LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM -fno-strict-aliasing -fno-schedule-insns -fno-schedule-insns2
+# -fno-schedule-insns is now applied globally in Makefile.in
+LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ATOMICS -DOPENSSL_NO_ASM -fno-strict-aliasing
 # OpenSSL 3.x requires libatomic for 64-bit atomic operations
 LIBOPENSSL_CONF_ENV += LDFLAGS="-latomic"
 endif

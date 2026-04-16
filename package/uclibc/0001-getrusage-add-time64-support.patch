@@ -1,0 +1,85 @@
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Wed, 11 Dec 2025 12:00:00 +0100
+Subject: [PATCH] getrusage: add time64 support for 32-bit architectures
+
+When UCLIBC_USE_TIME64 is enabled on 32-bit architectures, struct rusage
+uses 64-bit timeval (16 bytes) but the kernel's getrusage syscall returns
+32-bit timevals (8 bytes).
+
+This causes corruption of the rusage values because the kernel writes
+8 bytes for each timeval but userspace expects 16 bytes.
+
+Fix by using a kernel-compatible struct with 32-bit timevals and
+converting to the userspace 64-bit format after the syscall.
+
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+ libc/sysdeps/linux/common/getrusage.c | 60 ++++++++++++++++++++++++++++++++++-
+ 1 file changed, 59 insertions(+), 1 deletion(-)
+
+--- a/libc/sysdeps/linux/common/getrusage.c
++++ b/libc/sysdeps/linux/common/getrusage.c
+@@ -10,4 +10,63 @@
+ #include <unistd.h>
+ #include <wait.h>
+ #include <sys/resource.h>
++
++#if defined(__UCLIBC_USE_TIME64__) && defined(__NR_getrusage)
++/*
++ * Kernel uses 32-bit timeval in struct rusage, but userspace with TIME64
++ * expects 64-bit timeval. Convert between them.
++ */
++struct __kernel_rusage {
++	struct {
++		__kernel_long_t tv_sec;
++		__kernel_long_t tv_usec;
++	} ru_utime;
++	struct {
++		__kernel_long_t tv_sec;
++		__kernel_long_t tv_usec;
++	} ru_stime;
++	__kernel_long_t ru_maxrss;
++	__kernel_long_t ru_ixrss;
++	__kernel_long_t ru_idrss;
++	__kernel_long_t ru_isrss;
++	__kernel_long_t ru_minflt;
++	__kernel_long_t ru_majflt;
++	__kernel_long_t ru_nswap;
++	__kernel_long_t ru_inblock;
++	__kernel_long_t ru_oublock;
++	__kernel_long_t ru_msgsnd;
++	__kernel_long_t ru_msgrcv;
++	__kernel_long_t ru_nsignals;
++	__kernel_long_t ru_nvcsw;
++	__kernel_long_t ru_nivcsw;
++};
++
++int getrusage(__rusage_who_t who, struct rusage *usage)
++{
++	struct __kernel_rusage kru;
++	int ret = INLINE_SYSCALL(getrusage, 2, who, &kru);
++	if (ret == 0 && usage) {
++		usage->ru_utime.tv_sec = kru.ru_utime.tv_sec;
++		usage->ru_utime.tv_usec = kru.ru_utime.tv_usec;
++		usage->ru_stime.tv_sec = kru.ru_stime.tv_sec;
++		usage->ru_stime.tv_usec = kru.ru_stime.tv_usec;
++		usage->ru_maxrss = kru.ru_maxrss;
++		usage->ru_ixrss = kru.ru_ixrss;
++		usage->ru_idrss = kru.ru_idrss;
++		usage->ru_isrss = kru.ru_isrss;
++		usage->ru_minflt = kru.ru_minflt;
++		usage->ru_majflt = kru.ru_majflt;
++		usage->ru_nswap = kru.ru_nswap;
++		usage->ru_inblock = kru.ru_inblock;
++		usage->ru_oublock = kru.ru_oublock;
++		usage->ru_msgsnd = kru.ru_msgsnd;
++		usage->ru_msgrcv = kru.ru_msgrcv;
++		usage->ru_nsignals = kru.ru_nsignals;
++		usage->ru_nvcsw = kru.ru_nvcsw;
++		usage->ru_nivcsw = kru.ru_nivcsw;
++	}
++	return ret;
++}
++#else
+ _syscall2(int, getrusage, __rusage_who_t, who, struct rusage *, usage)
++#endif

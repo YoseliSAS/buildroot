@@ -50,9 +50,7 @@ NFTABLES_CONF_OPTS += --without-json
 endif
 
 NFTABLES_CONF_ENV = LIBS="$(NFTABLES_LIBS)"
-ifeq ($(BR2_m68k_cf),y)
-NFTABLES_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -mlong-jump-table-offsets"
-endif
+# m68k -mlong-jump-table-offsets is now applied globally in Makefile.in
 
 define NFTABLES_LINUX_CONFIG_FIXUPS
 	$(call KCONFIG_ENABLE_OPT,CONFIG_NETFILTER)
