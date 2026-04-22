@@ -169,9 +169,9 @@ function btk_get_free_memory() {
    (( $# > 0 )) && _unit=$1 || _unit="k"
 
    # Free memory includes buffers and the amount of cached memory
-   local let _free_memory_kb=$(cat /proc/meminfo | grep "MemFree:" | tr -s ' ' | cut -f2 -d ' ')
-   local let _buffers_memory_kb=$(cat /proc/meminfo | grep "Buffers:" | tr -s ' ' | cut -f2 -d ' ')
-   local let _cached_memory_kb=$(cat /proc/meminfo | grep "^Cached:" | tr -s ' ' | cut -f2 -d ' ')
+   local _free_memory_kb=$(cat /proc/meminfo | grep "MemFree:" | tr -s ' ' | cut -f2 -d ' ')
+   local _buffers_memory_kb=$(cat /proc/meminfo | grep "Buffers:" | tr -s ' ' | cut -f2 -d ' ')
+   local _cached_memory_kb=$(cat /proc/meminfo | grep "^Cached:" | tr -s ' ' | cut -f2 -d ' ')
    _free_memory_kb=$(( ${_free_memory_kb} + ${_buffers_memory_kb} + ${_cached_memory_kb} ))
 
    # Do the unit conversion
@@ -199,7 +199,7 @@ function btk_get_used_memory() {
 
    # Used memory is equal to the capacity less the free memory
    # Do calculation in Bytes in order to be more precise
-   local let _used_memory_bytes=$(( $(btk_get_memory_capacity B ) - $(btk_get_free_memory B ) ))
+   local _used_memory_bytes=$(( $(btk_get_memory_capacity B ) - $(btk_get_free_memory B ) ))
    [[ $? != 0 ]] && return $?
 
    # Do the unit conversion
@@ -225,7 +225,7 @@ function btk_get_memory_capacity() {
    local _unit
    (( $# > 0 )) && _unit=$1 || _unit="k"
 
-   local let _memory_capacity_kb=$(cat /proc/meminfo | grep "MemTotal:" | tr -s ' ' | cut -f2 -d ' ')
+   local _memory_capacity_kb=$(cat /proc/meminfo | grep "MemTotal:" | tr -s ' ' | cut -f2 -d ' ')
    [[ $? != 0 ]] && return $?
 
    # Do the unit conversion
@@ -259,7 +259,7 @@ function btk_get_process_memory() {
    (( $# > 1 )) && _unit=$2 || _unit="k"
 
    # cut / tr combo is prefered to awk use because this way is more efficient
-   local let _proces_memory_kb=$(( $( cat /proc/${_pid}/smaps \
+   local _proces_memory_kb=$(( $( cat /proc/${_pid}/smaps \
       | grep Refere | tr -s  ' ' | cut -f2 -d ' ' | xargs | tr ' ' '+' ) ))
    [[ $? != 0 ]] && return $?
 
@@ -409,7 +409,7 @@ function btk_check_required_tools(){
    local _ret=0
    local _missing_tools=""
 
-   for tool in $@ ; do
+   for tool in "$@" ; do
       if ! which ${tool} > /dev/null ; then
          _missing_tools="${_missing_tools} ${tool}"
          btk_print "${tool} is not installed on system"
