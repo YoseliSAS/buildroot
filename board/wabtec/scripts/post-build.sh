@@ -12,6 +12,16 @@ TARGET_DIR="$1"
 find "$TARGET_DIR" -type f -name "*-gdb.py" -delete 2>/dev/null
 echo "post-build: removed *-gdb.py files"
 
+# Pre-generate /etc/ld.so.cache at build time using the host ldconfig.
+# The rootfs library layout is static, so the cache is valid for every
+# boot and eliminates the ldconfig run at first boot (~7s gain).
+OUTPUT_DIR="$(cd "$TARGET_DIR/.." && pwd -P)"
+HOST_DIR="${OUTPUT_DIR}/host"
+if [ -x "${HOST_DIR}/bin/ldconfig" ]; then
+	"${HOST_DIR}/bin/ldconfig" -r "$TARGET_DIR" -C /etc/ld.so.cache -X
+	echo "post-build: pre-generated /etc/ld.so.cache"
+fi
+
 # Generate library version hash for ld.so.cache invalidation.
 # Two-level md5: first hash each .so content (deterministic, no timestamps),
 # then hash the sorted list of "<md5>  <path>" lines.
