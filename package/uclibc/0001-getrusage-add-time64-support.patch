@@ -1,6 +1,7 @@
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Date: Wed, 11 Dec 2025 12:00:00 +0100
 Subject: [PATCH] getrusage: add time64 support for 32-bit architectures
+Upstream: pending
 
 When UCLIBC_USE_TIME64 is enabled on 32-bit architectures, struct rusage
 uses 64-bit timeval (16 bytes) but the kernel's getrusage syscall returns
