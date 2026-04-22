@@ -138,7 +138,7 @@ function flash_confirm_bank()
   # Sanity check
   if [[ ! -e ${tmpConfirmBankFile} ]]
   then
-    return -1
+    return 1
   fi
 
   # Params extract
