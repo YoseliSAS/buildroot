@@ -1,6 +1,7 @@
 From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
 Date: Sun, 9 Mar 2026 09:00:00 +0100
 Subject: [PATCH] libc: add statx() syscall wrapper and enable for m68k
+Upstream: pending
 
 Add the statx() system call wrapper for architectures that support
 the __NR_statx syscall number. Enable __UCLIBC_HAVE_STATX__ for m68k
