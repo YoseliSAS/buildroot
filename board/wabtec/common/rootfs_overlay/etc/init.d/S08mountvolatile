@@ -35,7 +35,8 @@ SCRIPTNAME="${0##*/}"
 mount_overlay() {
 	local entry="$1"
 	local folder="${entry%%(*}"
-	local options="${entry#*(}" options="${options%)}"
+	local options="${entry#*(}"
+	options="${options%)}"
 	local bfolder="${folder##*/}"
 	local upperdir="$VOLATILE/${bfolder}_upper"
 	local workdir="$VOLATILE/${bfolder}_work"
@@ -60,25 +61,14 @@ case "$1" in
 			mount_overlay "$ETC_ENTRY"
 		fi
 
-		# Step 2: Setup ld.so.cache for faster library lookups
-		# Use cached version from /data if library version matches
-		if [ -x /sbin/ldconfig ]; then
-			CURRENT_VER=$(cat /etc/lib.version 2>/dev/null)
-			CACHED_VER=$(cat /data/lib.version 2>/dev/null)
-
-			if [ -n "$CURRENT_VER" ] && [ "$CURRENT_VER" = "$CACHED_VER" ] && [ -f /data/ld.so.cache ]; then
-				ts "$SCRIPTNAME: ldconfig (from cache)"
-				cp /data/ld.so.cache /etc/ld.so.cache
-			else
-				ts "$SCRIPTNAME: ldconfig (generate)"
-				/sbin/ldconfig -X
-				# Save for next boot if /data is writable
-				if [ -d /data ]; then
-					cp /etc/ld.so.cache /data/ld.so.cache
-					cp /etc/lib.version /data/lib.version
-					sync /data/ld.so.cache /data/lib.version
-				fi
-			fi
+		# Step 2: ld.so.cache is pre-generated at build time by
+		# post-build.sh and embedded in the rootfs. The overlayfs on
+		# /etc exposes it from the lowerdir. No runtime generation needed.
+		if [ -f /etc/ld.so.cache ]; then
+			ts "$SCRIPTNAME: ld.so.cache (pre-built)"
+		elif [ -x /sbin/ldconfig ]; then
+			ts "$SCRIPTNAME: ldconfig (generate, fallback)"
+			/sbin/ldconfig -X
 		fi
 
 		# Step 3: Mount remaining overlays in parallel (using cached libs)

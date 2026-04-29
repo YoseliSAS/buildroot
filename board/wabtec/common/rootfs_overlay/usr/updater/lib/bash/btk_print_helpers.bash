@@ -41,7 +41,10 @@ function btk_print() {
 # $1 : The string to be logged
 #------------------------------------------------------------------------------
 function btk_error() {
-   btk_print "ERROR: $@ ($(caller))" 1>&2
+   local caller_info
+   caller_info="$(caller)"
+
+   btk_print "ERROR:" "$@" "(${caller_info})" 1>&2
 
    # Call the hook before exiting
    ${BTK_ON_ERROR_HOOK}
@@ -59,5 +62,7 @@ function btk_error() {
 function btk_print_with_indent() {
    local -i indent=$1
    shift
-   btk_print "$(printf '%'$((indent*3))'s')$@"
+   local prefix
+   prefix="$(printf '%*s' $((indent*3)) '')"
+   btk_print "${prefix}" "$@"
 }

@@ -140,12 +140,13 @@ function btk_args() {
       pos+=(_${arg##+(-)})
    done
 
-   echo -n "local ${pos[@]}"
+   printf 'local'
+   printf ' %q' "${pos[@]}"
    if ((${#leftOver[@]})); then
-      echo "; set ${leftOver[@]}"
-   else
-      echo ""
+      printf '; set'
+      printf ' %q' "${leftOver[@]}"
    fi
+   printf '\n'
 }
 
 #------------------------------------------------------------------------------
@@ -159,6 +160,6 @@ function btk_args() {
 #   btk_arg_split -s=. hello.world hello world
 #------------------------------------------------------------------------------
 function btk_arg_split() {
-   eval $(btk_args "-s=:" $@)
+   eval "$(btk_args "-s=:" "$@")"
    echo "$(IFS=$_s; echo $1)"
 }
