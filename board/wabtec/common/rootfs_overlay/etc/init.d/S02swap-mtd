@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# S02swap-mtd: activate raw MTD swap if a partition named "swap" exists.
+#
+# Self-gating: no-op on boards whose mtdparts has no "swap" partition.
+# DLC2NG defines a 56 MB raw MTD labeled "swap" outside the data UBI
+# image, used by the .up software package decompression flow when the
+# 128 MB of RAM is insufficient. DLC-Next has 256 MB RAM and no swap
+# partition, so this script exits silently there.
+
+set -u
+
+find_swap_mtd() {
+    awk -F'[: ]' '/"swap"/{gsub("mtd","",$1); print $1; exit}' /proc/mtd 2>/dev/null
+}
+
+is_swap_formatted() {
+    # The "SWAPSPACE2" signature sits at offset (PAGE_SIZE - 10).
+    page_size=$(getconf PAGESIZE 2>/dev/null || echo 4096)
+    offset=$((page_size - 10))
+    sig=$(dd if="$1" bs=1 skip="$offset" count=10 2>/dev/null)
+    [ "$sig" = "SWAPSPACE2" ]
+}
+
+case "$1" in
+    start)
+        mtd_num=$(find_swap_mtd)
+        if [ -z "$mtd_num" ]; then
+            exit 0
+        fi
+        swap_dev="/dev/mtdblock${mtd_num}"
+        if [ ! -b "$swap_dev" ]; then
+            echo "S02swap-mtd: $swap_dev missing, skipping" >&2
+            exit 0
+        fi
+        if ! is_swap_formatted "$swap_dev"; then
+            echo "S02swap-mtd: formatting $swap_dev as swap"
+            mkswap "$swap_dev" || exit 1
+        fi
+        swapon "$swap_dev" || exit 1
+        echo "S02swap-mtd: $swap_dev activated"
+        ;;
+    stop)
+        mtd_num=$(find_swap_mtd)
+        [ -z "$mtd_num" ] && exit 0
+        swapoff "/dev/mtdblock${mtd_num}" 2>/dev/null
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}" >&2
+        exit 1
+        ;;
+esac
