@@ -1,0 +1,11 @@
+# Configuration for /etc/init.d/S01seedrng (busybox seedrng wrapper).
+#
+# The seed lives on the persistent system_dyn UBI volume so it survives
+# reboots and project-overlay bank switches. system_dyn is mounted at
+# /data/system by S01mountdata, which runs before S01seedrng (m < s in
+# the sysv init order at S01).
+#
+# This file is harmless on DLC-Next (BR2_PACKAGE_URANDOM_SCRIPTS=n,
+# S01seedrng is not installed); only DLC2NG actually consumes it.
+
+SEEDRNG_ARGS="--seed-dir=/data/system/seedrng"

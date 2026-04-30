@@ -14,3 +14,4 @@ project_a       /                d  755  0     0
 project_b       /                d  755  0     0
 project_datafs  /                d  755  0     0
 system_dyn      /                d  755  0     0
+system_dyn      /seedrng         d  700  0     0
