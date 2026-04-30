@@ -1013,6 +1013,8 @@ endmenu
 
 source "system/Config.in"
 
+source "board/wabtec/Config.in"
+
 source "linux/Config.in"
 
 source "package/Config.in"
