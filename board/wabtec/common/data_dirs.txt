@@ -1,0 +1,16 @@
+# Static (non-user) directory entries for data volumes.
+# Format: volume_name  path  type  mode  uid  gid
+# These are merged with auto-generated user home entries by
+# gen-datafs-skeletons.py. v2 layout per 2026-04-21 consensus
+# (REQ_CYBER_EDCU_016549).
+#
+# Root directory of each volume
+upload          /                d  755  0     0
+download        /                d  755  0     0
+security        /                d  750  0     1005
+log             /                d  770  0     1006
+log             /nginx           d  770  0     1006
+project_a       /                d  755  0     0
+project_b       /                d  755  0     0
+project_datafs  /                d  755  0     0
+system_dyn      /                d  755  0     0

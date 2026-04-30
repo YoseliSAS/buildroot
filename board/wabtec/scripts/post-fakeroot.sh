@@ -1,91 +1,46 @@
 #!/bin/sh
-#
-# Post-build filesystem adjustments
-#
 
-###############################################################################
-# Safety
-###############################################################################
 set -e
 
-###############################################################################
-# Helpers
-###############################################################################
-fatal() {
-    echo "ERROR: $*" >&2
-    exit 1
-}
-
-info() {
-    echo "[INFO] $*"
-}
-
-###############################################################################
-# Preconditions
-###############################################################################
-# TARGET_DIR is provided by Buildroot and points to the root filesystem
-[ -n "${TARGET_DIR:-}" ] || fatal "TARGET_DIR is not set"
-[ -d "$TARGET_DIR" ] || fatal "TARGET_DIR does not exist: $TARGET_DIR"
-
-###############################################################################
-# Volatile directories
-###############################################################################
 # We need a /volatile to mount our /etc /var and /run
-info "Creating volatile directories"
-
 mkdir -p "${TARGET_DIR}/volatile"
+
 mkdir -p "${TARGET_DIR}/run/lock/subsys"
+mkdir -p "${TARGET_DIR}/home"
 
-###############################################################################
-# Log directory handling
-###############################################################################
-# Create the /data/log directory if it doesn't exist
-# Then redirect /var/log to /data/log to persist logs on /data
-info "Redirecting /var/log to /data/log"
-
+# Create mount point directories for the multi-volume /data layout.
+# These directories serve as mount points for the UBI volumes created
+# by gen-datafs-ubi-multi.sh. S01mountdata mounts volumes on top of them.
+# Layout per 2026-04-21 consensus (REQ_CYBER_EDCU_016549).
+mkdir -p "${TARGET_DIR}/data/upload"
+mkdir -p "${TARGET_DIR}/data/download"
+mkdir -p "${TARGET_DIR}/data/security"
 mkdir -p "${TARGET_DIR}/data/log"
+mkdir -p "${TARGET_DIR}/data/system"
 
-# Remove the /var/log directory if it exists
+# Remove legacy /data/var created by Buildroot from users_table.txt
+# (systemLog home = /data/var/log, unused path not matching any real app)
+rm -rf "${TARGET_DIR}/data/var"
+
+# Persistent syslog: /var/log -> /data/log symlink.
+# The UBI log volume is mounted at /data/log by S01mountdata.
+# The symlink survives the overlayfs on /var (visible in the merged view).
 rm -rf "${TARGET_DIR}/var/log"
-
-# Create a symbolic link from /var/log to /data/log
 ln -sf /data/log "${TARGET_DIR}/var/log"
 
-###############################################################################
-# Init script ordering
-###############################################################################
 # Change the order to let /data be mounted before rsyslog
-info "Adjusting rsyslog init script order"
-
 if [ -f "${TARGET_DIR}/etc/init.d/S01rsyslogd" ]; then
-    mv "${TARGET_DIR}/etc/init.d/S01rsyslogd" \
-       "${TARGET_DIR}/etc/init.d/S10rsyslogd"
+    mv "${TARGET_DIR}/etc/init.d/S01rsyslogd" "${TARGET_DIR}/etc/init.d/S10rsyslogd"
 fi
 
-###############################################################################
-# SSH host key permissions
-###############################################################################
 # Change the permissions for ssh key
-info "Fixing SSH host key permissions"
-
 if [ -f "${TARGET_DIR}/etc/ssh/ssh_host_rsa_key" ]; then
     chmod 600 "${TARGET_DIR}/etc/ssh/ssh_host_rsa_key"
 fi
 
-###############################################################################
-# Application-specific directories
-###############################################################################
-info "Creating application directories"
-
+# Create project overlay fallback directory (used when no A/B bank is active)
 mkdir -p "${TARGET_DIR}/usr/DLC2ng"
 mkdir -p "${TARGET_DIR}/usr/network"
 
-###############################################################################
-# Init script cleanup
-###############################################################################
-# Remove default nginx init script (we use S99nginx from overlay)
-info "Removing default nginx init script"
-
+# Remove default nginx init script (we use S80nginx from overlay)
 rm -f "${TARGET_DIR}/etc/init.d/S50nginx"
-
-info "Post-build filesystem adjustments complete"

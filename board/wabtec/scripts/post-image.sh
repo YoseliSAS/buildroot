@@ -71,8 +71,7 @@ output_dir="$(cd "${images_dir}/.." && pwd -P)"
 [ -d "$images_dir" ] || fatal "Missing images directory: $images_dir"
 
 require_exec "${script_dir}/pad-uimage.sh"
-require_exec "${script_dir}/gen-datafs.sh"
-require_exec "${script_dir}/gen-datafs-ubi.sh"
+require_exec "${script_dir}/gen-datafs-ubi-multi.sh"
 
 command -v m68k-linux-objcopy >/dev/null 2>&1 || fatal "m68k-linux-objcopy not found"
 command -v mkimage >/dev/null 2>&1 || fatal "mkimage not found"
@@ -106,11 +105,8 @@ mkimage \
 info "Padding uImage"
 "${script_dir}/pad-uimage.sh" "$images_dir" "$@"
 
-info "Generating JFFS2 data filesystem"
-"${script_dir}/gen-datafs.sh" "$output_dir" "$@"
-
-info "Generating UBI data filesystem"
-"${script_dir}/gen-datafs-ubi.sh" "$output_dir" "$@"
+info "Generating UBI data filesystem (multi-volume)"
+"${script_dir}/gen-datafs-ubi-multi.sh" "$output_dir" "$@"
 
 ###############################################################################
 # Checksums
