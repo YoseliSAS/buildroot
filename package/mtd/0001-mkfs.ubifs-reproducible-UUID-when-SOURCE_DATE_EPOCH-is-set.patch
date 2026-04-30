@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+Date: Thu, 10 Apr 2026 10:00:00 +0200
+Subject: [PATCH] mkfs.ubifs: support SOURCE_DATE_EPOCH for reproducible builds
+
+When SOURCE_DATE_EPOCH is set, make mkfs.ubifs output bit-for-bit
+reproducible: generate a deterministic UUID via CRC32 of the root
+directory path, and clamp all inode timestamps (including ctime which
+cannot be set by userspace) to the epoch value.
+
+Upstream: not-submitted, reproducible builds support for mkfs.ubifs
+Signed-off-by: Jean-Michel Hautbois <jeanmichel.hautbois@yoseli.org>
+---
+--- a/ubifs-utils/mkfs.ubifs/mkfs.ubifs.c	2024-09-25 15:12:52.000000000 +0200
++++ b/ubifs-utils/mkfs.ubifs/mkfs.ubifs.c	2026-04-10 10:48:22.264568296 +0200
+@@ -131,6 +131,32 @@
+ 
+ static char *root;
+ static int root_len;
++
++/**
++ * clamp_timestamps - clamp all timestamps in a stat buffer to
++ * SOURCE_DATE_EPOCH for reproducible builds.
++ *
++ * When SOURCE_DATE_EPOCH is set, any timestamp newer than the epoch is
++ * clamped to the epoch value.  This handles ctime (which cannot be set
++ * via touch/utimensat) and any atime/mtime that was not explicitly
++ * normalized by the build system.
++ */
++static void clamp_timestamps(struct stat *st)
++{
++	const char *epoch = getenv("SOURCE_DATE_EPOCH");
++	time_t t;
++
++	if (!epoch)
++		return;
++
++	t = (time_t)strtol(epoch, NULL, 10);
++	if (st->st_atime > t)
++		st->st_atime = t;
++	if (st->st_mtime > t)
++		st->st_mtime = t;
++	if (st->st_ctime > t)
++		st->st_ctime = t;
++}
+ static struct fscrypt_context *root_fctx;
+ static struct stat root_st;
+ static char *output;
+@@ -2099,6 +2125,7 @@
+ 			sys_err_msg("lstat failed for file '%s'", name);
+ 			goto out_free;
+ 		}
++		clamp_timestamps(&dent_st);
+ 
+ 		if (squash_owner)
+ 			/*
+@@ -2286,6 +2313,7 @@
+ 		if (err)
+ 			return sys_err_msg("bad root file-system directory '%s'",
+ 					   root);
++		clamp_timestamps(&root_st);
+ 		if (squash_owner)
+ 			root_st.st_uid = root_st.st_gid = 0;
+ 	} else {
+@@ -2643,7 +2671,23 @@
+ 	sup->rp_size       = cpu_to_le64(c->rp_size);
+ 	sup->time_gran     = cpu_to_le32(DEFAULT_TIME_GRAN);
+ 	sup->hash_algo     = cpu_to_le16(c->hash_algo);
+-	uuid_generate_random(sup->uuid);
++	/*
++	 * When SOURCE_DATE_EPOCH is set, generate a deterministic UUID
++	 * from the root directory path for reproducible builds.
++	 */
++	if (getenv("SOURCE_DATE_EPOCH") && root) {
++		int i;
++		uint32_t h;
++
++		for (i = 0; i < 4; i++) {
++			h = mtd_crc32(~0U ^ i, root, strlen(root));
++			memcpy(sup->uuid + i * 4, &h, 4);
++		}
++		sup->uuid[6] = (sup->uuid[6] & 0x0f) | 0x40;
++		sup->uuid[8] = (sup->uuid[8] & 0x3f) | 0x80;
++	} else {
++		uuid_generate_random(sup->uuid);
++	}
+ 
+ 	if (verbose) {
+ 		char s[40];
