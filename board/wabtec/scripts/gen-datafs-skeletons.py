@@ -129,10 +129,10 @@ def main():
             merged[path] = (path, typ, mode, uid, gid)
         with open(outpath, "w") as f:
             f.write(f"# Auto-generated device table for volume: {vol}\n")
-            f.write(f"# Source: users_table.txt + data_dirs.txt\n")
-            f.write(f"# Do not edit manually.\n")
-            f.write(f"#\n")
-            f.write(f"# <name>\t\t\t<type>\t<mode>\t<uid>\t<gid>\t<major>\t<minor>\t<start>\t<inc>\t<count>\n")
+            f.write("# Source: users_table.txt + data_dirs.txt\n")
+            f.write("# Do not edit manually.\n")
+            f.write("#\n")
+            f.write("# <name>\t\t\t<type>\t<mode>\t<uid>\t<gid>\t<major>\t<minor>\t<start>\t<inc>\t<count>\n")
             for path in sorted(merged.keys()):
                 _, typ, mode, uid, gid = merged[path]
                 f.write(f"{path}\t\t\t{typ}\t{mode}\t{uid}\t{gid}\t-\t-\t-\t-\t-\n")

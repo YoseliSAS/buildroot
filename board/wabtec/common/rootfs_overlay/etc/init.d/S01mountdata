@@ -37,45 +37,44 @@ system_dyn:/data/system:nosuid,nodev,noexec,noatime
 ###############################################################################
 
 ts() {
-    read -r uptime _ < /proc/uptime
-    echo "[$uptime] $*"
+	read -r uptime _ < /proc/uptime
+	echo "[$uptime] $*"
 }
 
 check_ubi_header() {
-    header=$(dd if=/dev/${MTD_PART} bs=4 count=1 2>/dev/null | od -An -tx1 | tr -d ' ')
-    [ "$header" = "55424923" ]
+	header=$(dd if=/dev/${MTD_PART} bs=4 count=1 2>/dev/null | od -An -tx1 | tr -d ' ')
+	[ "$header" = "55424923" ]
 }
 
 flash_ubi_image() {
-    if [ -f "$UBI_IMAGE" ]; then
-        ts "Flashing pre-generated UBI image..."
-        zcat "$UBI_IMAGE" > /tmp/data.ubi
-        flash_erase /dev/${MTD_PART} 0 0
-        nandwrite -k /dev/${MTD_PART} /tmp/data.ubi
-        ret=$?
-        rm -f /tmp/data.ubi
-        if [ $ret -ne 0 ]; then
-            echo "Error: nandwrite failed!" >&2
-            return 1
-        fi
-        ts "UBI image flashed successfully"
-    else
-        ts "No UBI image found, formatting fresh..."
-        ubiformat /dev/${MTD_PART} -y -q
-        if [ $? -ne 0 ]; then
-            echo "Error: ubiformat failed!" >&2
-            return 1
-        fi
-        ts "UBI format complete"
-    fi
+	if [ -f "$UBI_IMAGE" ]; then
+		ts "Flashing pre-generated UBI image..."
+		zcat "$UBI_IMAGE" > /tmp/data.ubi
+		flash_erase /dev/${MTD_PART} 0 0
+		nandwrite -k /dev/${MTD_PART} /tmp/data.ubi
+		ret=$?
+		rm -f /tmp/data.ubi
+		if [ $ret -ne 0 ]; then
+			echo "Error: nandwrite failed!" >&2
+			return 1
+		fi
+		ts "UBI image flashed successfully"
+	else
+		ts "No UBI image found, formatting fresh..."
+		if ! ubiformat /dev/${MTD_PART} -y -q; then
+			echo "Error: ubiformat failed!" >&2
+			return 1
+		fi
+		ts "UBI format complete"
+	fi
 }
 
 # Detect legacy single-volume layout (old "data" volume with autoresize),
 # or the early multi-volume layout that had a "flm" volume.
 is_legacy_layout() {
-    ubinfo ${UBI_DEV} -N data >/dev/null 2>&1 ||
-        ubinfo ${UBI_DEV} -N flm >/dev/null 2>&1 ||
-        ! ubinfo ${UBI_DEV} -N system_dyn >/dev/null 2>&1
+	ubinfo ${UBI_DEV} -N data >/dev/null 2>&1 ||
+		ubinfo ${UBI_DEV} -N flm >/dev/null 2>&1 ||
+		! ubinfo ${UBI_DEV} -N system_dyn >/dev/null 2>&1
 }
 
 ###############################################################################
@@ -83,31 +82,31 @@ is_legacy_layout() {
 ###############################################################################
 
 attach_ubi() {
-    # Enable fastmap autoconvert before attaching
-    echo 1 > /sys/module/ubi/parameters/fm_autoconvert
+	# Enable fastmap autoconvert before attaching
+	echo 1 > /sys/module/ubi/parameters/fm_autoconvert
 
-    if ! check_ubi_header; then
-        ts "No UBI header found on ${MTD_PART}"
-        flash_ubi_image || exit 1
-    fi
+	if ! check_ubi_header; then
+		ts "No UBI header found on ${MTD_PART}"
+		flash_ubi_image || exit 1
+	fi
 
-    ts "Running ubiattach..."
-    if ! ubiattach /dev/ubi_ctrl -m ${MTD_NUM} 2>/dev/null; then
-        ts "ubiattach failed, reformatting..."
-        flash_ubi_image || exit 1
-        ubiattach /dev/ubi_ctrl -m ${MTD_NUM} || exit 1
-    fi
-    ts "UBI attached"
+	ts "Running ubiattach..."
+	if ! ubiattach /dev/ubi_ctrl -m ${MTD_NUM} 2>/dev/null; then
+		ts "ubiattach failed, reformatting..."
+		flash_ubi_image || exit 1
+		ubiattach /dev/ubi_ctrl -m ${MTD_NUM} || exit 1
+	fi
+	ts "UBI attached"
 
-    # Detect and handle legacy single-volume layout
-    if is_legacy_layout; then
-        ts "WARNING: Legacy single-volume layout detected. Reformatting with multi-volume layout."
-        umount /data 2>/dev/null
-        ubidetach -m ${MTD_NUM} 2>/dev/null
-        flash_ubi_image || exit 1
-        ubiattach /dev/ubi_ctrl -m ${MTD_NUM} || exit 1
-        ts "Reformatted to multi-volume layout"
-    fi
+	# Detect and handle legacy single-volume layout
+	if is_legacy_layout; then
+		ts "WARNING: Legacy single-volume layout detected. Reformatting with multi-volume layout."
+		umount /data 2>/dev/null
+		ubidetach -m ${MTD_NUM} 2>/dev/null
+		flash_ubi_image || exit 1
+		ubiattach /dev/ubi_ctrl -m ${MTD_NUM} || exit 1
+		ts "Reformatted to multi-volume layout"
+	fi
 }
 
 ###############################################################################
@@ -115,30 +114,30 @@ attach_ubi() {
 ###############################################################################
 
 mount_data_volumes() {
-    for entry in ${DATA_VOLUMES}; do
-        vol=$(echo "$entry" | cut -d: -f1)
-        mnt=$(echo "$entry" | cut -d: -f2)
-        opts=$(echo "$entry" | cut -d: -f3)
+	for entry in ${DATA_VOLUMES}; do
+		vol=$(echo "$entry" | cut -d: -f1)
+		mnt=$(echo "$entry" | cut -d: -f2)
+		opts=$(echo "$entry" | cut -d: -f3)
 
-        if mountpoint -q "$mnt" 2>/dev/null; then
-            ts "$mnt already mounted, skipping"
-            continue
-        fi
+		if mountpoint -q "$mnt" 2>/dev/null; then
+			ts "$mnt already mounted, skipping"
+			continue
+		fi
 
-        # Verify volume exists
-        if ! ubinfo ${UBI_DEV} -N "$vol" >/dev/null 2>&1; then
-            ts "WARNING: UBI volume '$vol' not found, skipping"
-            continue
-        fi
+		# Verify volume exists
+		if ! ubinfo ${UBI_DEV} -N "$vol" >/dev/null 2>&1; then
+			ts "WARNING: UBI volume '$vol' not found, skipping"
+			continue
+		fi
 
-        # Create mount point if missing
-        mkdir -p "$mnt"
+		# Create mount point if missing
+		mkdir -p "$mnt"
 
-        ts "Mounting ubi0:${vol} at ${mnt}"
-        if ! mount -t ubifs -o "${opts}" "ubi0:${vol}" "$mnt"; then
-            ts "ERROR: Failed to mount ubi0:${vol} at ${mnt}"
-        fi
-    done
+		ts "Mounting ubi0:${vol} at ${mnt}"
+		if ! mount -t ubifs -o "${opts}" "ubi0:${vol}" "$mnt"; then
+			ts "ERROR: Failed to mount ubi0:${vol} at ${mnt}"
+		fi
+	done
 }
 
 ###############################################################################
@@ -146,46 +145,46 @@ mount_data_volumes() {
 ###############################################################################
 
 mount_project_overlay() {
-    # Read active bank from U-Boot environment
-    proj_status=""
-    if command -v fw_printenv >/dev/null 2>&1; then
-        proj_status=$(fw_printenv -n proj_overlay_status 2>/dev/null)
-    fi
+	# Read active bank from U-Boot environment
+	proj_status=""
+	if command -v fw_printenv >/dev/null 2>&1; then
+		proj_status=$(fw_printenv -n proj_overlay_status 2>/dev/null)
+	fi
 
-    case "$proj_status" in
-        a)  bank_vol="project_a" ;;
-        b)  bank_vol="project_b" ;;
-        *)
-            ts "WARNING: proj_overlay_status not set or invalid ('${proj_status}'). Falling back to BSP /usr/DLC2ng."
-            return 0
-            ;;
-    esac
+	case "$proj_status" in
+		a)  bank_vol="project_a" ;;
+		b)  bank_vol="project_b" ;;
+		*)
+			ts "WARNING: proj_overlay_status not set or invalid ('${proj_status}'). Falling back to BSP /usr/DLC2ng."
+			return 0
+			;;
+	esac
 
-    # Verify the volume exists and is populated
-    if ! ubinfo ${UBI_DEV} -N "$bank_vol" >/dev/null 2>&1; then
-        ts "WARNING: UBI volume '${bank_vol}' not found. Falling back to BSP /usr/DLC2ng."
-        return 0
-    fi
+	# Verify the volume exists and is populated
+	if ! ubinfo ${UBI_DEV} -N "$bank_vol" >/dev/null 2>&1; then
+		ts "WARNING: UBI volume '${bank_vol}' not found. Falling back to BSP /usr/DLC2ng."
+		return 0
+	fi
 
-    # Mount the bank at a staging point, then bind-mount to /usr/DLC2ng
-    staging="/run/project_overlay"
-    mkdir -p "$staging"
+	# Mount the bank at a staging point, then bind-mount to /usr/DLC2ng
+	staging="/run/project_overlay"
+	mkdir -p "$staging"
 
-    ts "Mounting project bank '${bank_vol}' at ${staging}"
-    if ! mount -t ubifs -o ro,nosuid,nodev "ubi0:${bank_vol}" "$staging"; then
-        ts "ERROR: Failed to mount project bank '${bank_vol}'. Falling back to BSP /usr/DLC2ng."
-        return 1
-    fi
+	ts "Mounting project bank '${bank_vol}' at ${staging}"
+	if ! mount -t ubifs -o ro,nosuid,nodev "ubi0:${bank_vol}" "$staging"; then
+		ts "ERROR: Failed to mount project bank '${bank_vol}'. Falling back to BSP /usr/DLC2ng."
+		return 1
+	fi
 
-    # Bind-mount over /usr/DLC2ng
-    ts "Bind-mounting ${staging} -> /usr/DLC2ng"
-    mount --bind "$staging" /usr/DLC2ng
+	# Bind-mount over /usr/DLC2ng
+	ts "Bind-mounting ${staging} -> /usr/DLC2ng"
+	mount --bind "$staging" /usr/DLC2ng
 
-    # Check if pending validation
-    proj_pending=$(fw_printenv -n proj_overlay_pending 2>/dev/null)
-    if [ "$proj_pending" = "1" ]; then
-        ts "NOTE: Project overlay bank '${bank_vol}' is pending validation (health check required)"
-    fi
+	# Check if pending validation
+	proj_pending=$(fw_printenv -n proj_overlay_pending 2>/dev/null)
+	if [ "$proj_pending" = "1" ]; then
+		ts "NOTE: Project overlay bank '${bank_vol}' is pending validation (health check required)"
+	fi
 }
 
 ###############################################################################
@@ -193,18 +192,18 @@ mount_project_overlay() {
 ###############################################################################
 
 unmount_all() {
-    ts "Unmounting project overlay..."
-    umount /usr/DLC2ng 2>/dev/null
-    umount /run/project_overlay 2>/dev/null
+	ts "Unmounting project overlay..."
+	umount /usr/DLC2ng 2>/dev/null
+	umount /run/project_overlay 2>/dev/null
 
-    ts "Unmounting data volumes..."
-    for entry in ${DATA_VOLUMES}; do
-        mnt=$(echo "$entry" | cut -d: -f2)
-        umount "$mnt" 2>/dev/null
-    done
+	ts "Unmounting data volumes..."
+	for entry in ${DATA_VOLUMES}; do
+		mnt=$(echo "$entry" | cut -d: -f2)
+		umount "$mnt" 2>/dev/null
+	done
 
-    ts "Detaching UBI..."
-    ubidetach -m ${MTD_NUM} 2>/dev/null
+	ts "Detaching UBI..."
+	ubidetach -m ${MTD_NUM} 2>/dev/null
 }
 
 ###############################################################################
@@ -212,20 +211,20 @@ unmount_all() {
 ###############################################################################
 
 case "$1" in
-    start|"")
-        ts "S01mountdata: start"
-        attach_ubi
-        mount_data_volumes
-        mount_project_overlay
-        ts "S01mountdata: done"
-        ;;
-    stop)
-        ts "S01mountdata: stop"
-        unmount_all
-        ts "S01mountdata: stopped"
-        ;;
-    *)
-        echo "Usage: $0 {start|stop}" >&2
-        exit 1
-        ;;
+	start|"")
+		ts "S01mountdata: start"
+		attach_ubi
+		mount_data_volumes
+		mount_project_overlay
+		ts "S01mountdata: done"
+		;;
+	stop)
+		ts "S01mountdata: stop"
+		unmount_all
+		ts "S01mountdata: stopped"
+		;;
+	*)
+		echo "Usage: $0 {start|stop}" >&2
+		exit 1
+		;;
 esac

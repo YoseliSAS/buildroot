@@ -125,22 +125,27 @@ for entry in ${VOLUMES}; do
     # Calculate max LEB count: size_bytes / LEB_size
     leb_count=$(( size_mb * 1024 * 1024 / 126976 ))
 
-    # Append volume processing to fakeroot script
-    printf 'echo "[FAKEROOT] Volume: %s"\n' "${vol}" >> "${fakeroot_script}"
-    printf 'chown -R 0:0 "%s"\n' "${vol_work}" >> "${fakeroot_script}"
-    printf 'find "%s" -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +\n' "${vol_work}" >> "${fakeroot_script}"
+    # Append volume processing to fakeroot script. The ${SOURCE_DATE_EPOCH}
+    # in the find line is intentionally kept literal so it expands when the
+    # fakeroot script runs, not now.
+    {
+        printf 'echo "[FAKEROOT] Volume: %s"\n' "${vol}"
+        printf 'chown -R 0:0 "%s"\n' "${vol_work}"
+        # shellcheck disable=SC2016
+        printf 'find "%s" -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +\n' "${vol_work}"
 
-    if [ -f "${vol_devtable}" ]; then
-        printf '"%s/usr/bin/makedevs" -d "%s" "%s"\n' "${host_dir}" "${vol_devtable}" "${vol_work}" >> "${fakeroot_script}"
-    fi
+        if [ -f "${vol_devtable}" ]; then
+            printf '"%s/usr/bin/makedevs" -d "%s" "%s"\n' "${host_dir}" "${vol_devtable}" "${vol_work}"
+        fi
 
-    printf 'echo "[FAKEROOT] mkfs.ubifs: %s (%s MB, %s LEBs)"\n' "${vol}" "${size_mb}" "${leb_count}" >> "${fakeroot_script}"
-    printf '"%s/sbin/mkfs.ubifs" \\\n' "${host_dir}" >> "${fakeroot_script}"
-    printf '    -d "%s" \\\n' "${vol_work}" >> "${fakeroot_script}"
-    printf '    -e 126976 -m 2048 \\\n' >> "${fakeroot_script}"
-    printf '    -c %s \\\n' "${leb_count}" >> "${fakeroot_script}"
-    printf '    -x none \\\n' >> "${fakeroot_script}"
-    printf '    -o "%s/data-%s.ubifs"\n\n' "${ubifs_dir}" "${vol}" >> "${fakeroot_script}"
+        printf 'echo "[FAKEROOT] mkfs.ubifs: %s (%s MB, %s LEBs)"\n' "${vol}" "${size_mb}" "${leb_count}"
+        printf '"%s/sbin/mkfs.ubifs" \\\n' "${host_dir}"
+        printf '    -d "%s" \\\n' "${vol_work}"
+        printf '    -e 126976 -m 2048 \\\n'
+        printf '    -c %s \\\n' "${leb_count}"
+        printf '    -x none \\\n'
+        printf '    -o "%s/data-%s.ubifs"\n\n' "${ubifs_dir}" "${vol}"
+    } >> "${fakeroot_script}"
 done
 
 chmod 0755 "${fakeroot_script}"
@@ -179,13 +184,15 @@ for entry in ${VOLUMES}; do
     size_mb=$(echo "$entry" | cut -d: -f2)
     vol_type=$(echo "$entry" | cut -d: -f3)
 
-    printf '\n    partition %s {\n' "${vol}" >> "${genimage_runtime_cfg}"
-    printf '        image = "data-%s.ubifs"\n' "${vol}" >> "${genimage_runtime_cfg}"
-    printf '        size = %sM\n' "${size_mb}" >> "${genimage_runtime_cfg}"
-    if [ "${vol_type}" = "static" ]; then
-        printf '        read-only = true\n' >> "${genimage_runtime_cfg}"
-    fi
-    printf '    }\n' >> "${genimage_runtime_cfg}"
+    {
+        printf '\n    partition %s {\n' "${vol}"
+        printf '        image = "data-%s.ubifs"\n' "${vol}"
+        printf '        size = %sM\n' "${size_mb}"
+        if [ "${vol_type}" = "static" ]; then
+            printf '        read-only = true\n'
+        fi
+        printf '    }\n'
+    } >> "${genimage_runtime_cfg}"
 done
 
 printf '}\n' >> "${genimage_runtime_cfg}"
