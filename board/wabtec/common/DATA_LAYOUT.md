@@ -75,13 +75,30 @@ on the data MTD partition.
 - `/data/indent/serial` is dropped. The DCU serial number lives in the
   internal EEPROM (per Mickael Puret 2026-04-21), not in `/data`.
 
-## DLC2NG specifics (separate raw MTD)
+## DLC2NG swap (forward-looking, not yet allocated)
 
-DLC2NG (MCF54415, 128 MB RAM, no HW RNG) needs a 56 MB swap region on a
-**raw MTD** (outside the UBI image), used by the software package
-installer to decompress `.up` archives. DLC-Next (256 MB RAM) does not
-need swap. The swap is allocated outside the 264 MB data UBI partition
-and gated by `BR2_SYSTEM_NEEDS_SWAP` (selected by `BR2_BOARD_DLC2NG`).
+DLC2NG (MCF54415, 128 MB RAM, no HW RNG) is expected to need a swap
+region on a **raw MTD** (outside the UBI image) when a future package
+installer cannot decompress `.up` archives entirely in RAM. The current
+installer extracts to flash (`/data/upload`) so swap is not needed for
+this flow, but the requirement may resurface for project-specific
+installers.
+
+The software side is in place and self-gating:
+
+  - `BR2_SYSTEM_NEEDS_SWAP` Kconfig flag, selected by `BR2_BOARD_DLC2NG`
+  - `CONFIG_MKSWAP=y` in `busybox-minimal.config`
+  - `S02swap-mtd` init script, which scans `/proc/mtd` for a partition
+    literally named `"swap"`, runs `mkswap` if the SWAPSPACE2 magic is
+    absent, then `swapon`. No "swap" label = silent no-op.
+
+The hardware side (a "swap" partition in the U-Boot env `bootargs`
+mtdparts) is not currently declared on any shipping board, so the
+script is dormant. DLC-Next (256 MB RAM) does not need swap.
+
+If a future hardware revision allocates a "swap" partition (typically
+by adjusting the U-Boot env on the target, no buildroot change needed),
+`S02swap-mtd` will pick it up at the next boot.
 
 ## Reproducibility
 

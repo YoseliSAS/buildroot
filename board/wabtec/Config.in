@@ -22,9 +22,13 @@ config BR2_BOARD_DLC2NG
 	select BR2_SYSTEM_NEEDS_RANDOM_SEED_PERSIST
 	help
 	  Legacy DLC2NG door control unit, MCF54415 ColdFire SoC without
-	  hardware RNG, 128 MB RAM. Requires a swap region for software
-	  package decompression and a persistent random-seed (via busybox
-	  seedrng) to bootstrap the kernel CRNG quickly across reboots.
+	  hardware RNG, 128 MB RAM. The limited RAM is expected to need a
+	  swap region for software package decompression; the software
+	  infrastructure (BR2_SYSTEM_NEEDS_SWAP, busybox mkswap, init
+	  script S02swap-mtd) is in place and self-gating, but no shipping
+	  board currently declares a "swap" partition in its mtdparts.
+	  Also selects persistent random-seed (busybox seedrng) to
+	  bootstrap the kernel CRNG quickly across reboots.
 
 endchoice
 
