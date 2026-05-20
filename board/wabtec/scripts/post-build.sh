@@ -31,16 +31,6 @@ if [ -x "${HOST_DIR}/bin/ldconfig" ]; then
 	echo "post-build: pre-generated /etc/ld.so.cache"
 fi
 
-# Generate library version hash for ld.so.cache invalidation.
-# Two-level md5: first hash each .so content (deterministic, no timestamps),
-# then hash the sorted list of "<md5>  <path>" lines.
-(cd "$TARGET_DIR" && \
-	find lib usr/lib -name "*.so*" -type f -print0 2>/dev/null \
-	| sort -z \
-	| xargs -0 md5sum \
-	| md5sum | cut -d" " -f1) > "$TARGET_DIR/etc/lib.version"
-echo "post-build: generated /etc/lib.version"
-
 # Generate the multi-volume UBI data image and embed data.ubi.gz under
 # $TARGET_DIR/usr/share/ so that S01mountdata can flash it on the first
 # boot (or on reflash) when the data MTD is empty.

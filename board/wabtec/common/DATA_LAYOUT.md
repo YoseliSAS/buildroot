@@ -55,9 +55,9 @@ on the data MTD partition.
 - `system_dyn` holds **dynamic system files** (not project data): future
   `resolv.conf` cache, PAM faillock, and on DLC2NG the persistent
   random-seed (busybox `seedrng`). DLC-Next does not need a persistent
-  random-seed because it has the imx-rngc HW RNG. The `/etc/lib.version`
-  sentinel triggers a wipe of `system_dyn` on rootfs library version
-  change (MR2).
+  random-seed because it has the imx-rngc HW RNG. A future rootfs version
+  sentinel (reintroduced in MR2) will trigger a wipe of `system_dyn` on
+  rootfs library version change.
 
 ## Differences vs the previous proposal
 
