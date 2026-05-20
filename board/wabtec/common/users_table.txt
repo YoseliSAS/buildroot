@@ -1,6 +1,6 @@
 www-data 33 www-data 33 * /usr/html /sbin/nologin shadow HTTP user account
-upload 65533 ftp 83 =upload /data/ftp/upload /sbin/nologin - Upload FTP account
-download 65532 ftp 83 =download /data/ftp/download /sbin/nologin - Download FTP account
+upload 65533 ftp 83 =upload /data/upload /sbin/nologin - Upload FTP account
+download 65532 ftp 83 =download /data/download /sbin/nologin - Download FTP account
 FaiveleyEng 1001 dlc2ng 1003 =dhs03987 /usr/DLC2ng /bin/sh ftp Faiveley administrator
 shadowMng 1002 shadow 1007 * - - - shadow file manager
 ProdAdmin 1010 webmonext 1001 != - - - WebMonext User
