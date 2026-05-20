@@ -41,6 +41,3 @@ fi
 # Create project overlay fallback directory (used when no A/B bank is active)
 mkdir -p "${TARGET_DIR}/usr/DLC2ng"
 mkdir -p "${TARGET_DIR}/usr/network"
-
-# Remove default nginx init script (we use S80nginx from overlay)
-rm -f "${TARGET_DIR}/etc/init.d/S50nginx"
