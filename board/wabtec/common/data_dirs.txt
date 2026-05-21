@@ -14,5 +14,6 @@ project_a       /                d  755  0     0
 project_b       /                d  755  0     0
 project_datafs  /                d  755  0     0
 project_datafs  /flm             d  755  0     0
+project_datafs  /cbm             d  700  1102  1004
 system_dyn      /                d  755  0     0
 system_dyn      /seedrng         d  700  0     0

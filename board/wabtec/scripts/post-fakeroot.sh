@@ -19,6 +19,7 @@ mkdir -p "${TARGET_DIR}/data/log"
 mkdir -p "${TARGET_DIR}/data/system"
 mkdir -p "${TARGET_DIR}/data/project_datafs"
 mkdir -p "${TARGET_DIR}/data/flm"
+mkdir -p "${TARGET_DIR}/data/cbm"
 
 # Remove legacy /data/var created by Buildroot from users_table.txt
 # (systemLog home = /data/var/log, unused path not matching any real app)

@@ -40,9 +40,11 @@ system_dyn:/data/system:nosuid,nodev,noexec,noatime
 
 # Legacy-path bind mounts: source:target
 # Apps that hardcode the legacy path see their files in the right volume
-# without having to be migrated.
+# without having to be migrated. Projects that do not use a given path
+# pay no cost: empty source = empty bind, no extra resource use.
 PROJECT_DATAFS_BINDS="
 /data/project_datafs/flm:/data/flm
+/data/project_datafs/cbm:/data/cbm
 "
 
 ###############################################################################
