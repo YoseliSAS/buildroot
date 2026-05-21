@@ -5,8 +5,8 @@
 # (REQ_CYBER_EDCU_016549).
 #
 # Root directory of each volume
-upload          /                d  755  0     0
-download        /                d  755  0     0
+upload          /                d  2770 65134 1010
+download        /                d  0770 65133 1010
 security        /                d  750  0     1005
 log             /                d  770  0     1006
 log             /nginx           d  770  0     1006

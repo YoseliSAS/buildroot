@@ -102,11 +102,8 @@ def main():
     # Format: { volume_name: [(path, type, mode, uid, gid), ...] }
     volumes = {}
 
-    # Static directories from data_dirs.txt
-    for vol, path, typ, mode, uid, gid in parse_data_dirs(data_dirs_path):
-        volumes.setdefault(vol, []).append((path, typ, mode, uid, gid))
-
-    # User home directories from users_table.txt
+    # User home directories from users_table.txt (lower priority).
+    # data_dirs.txt entries that follow override these for the same path.
     for username, uid, gid, home in parse_users_table(users_table_path):
         vol = home_to_volume(home)
         if vol is None:
@@ -115,15 +112,19 @@ def main():
         # Home directory entry: owned by user, group, mode 750
         volumes.setdefault(vol, []).append((rel, "d", "750", str(uid), str(gid)))
 
+    # Static directories from data_dirs.txt (higher priority).
+    # Explicit declarations here override the default mode 750 home entry
+    # so volume roots can carry setgid/non-standard modes or alternate gids.
+    for vol, path, typ, mode, uid, gid in parse_data_dirs(data_dirs_path):
+        volumes.setdefault(vol, []).append((path, typ, mode, uid, gid))
+
     # Write per-volume device table files
-    # User entries override static entries for the same path (fixes the
-    # historical UID drift where device_table_data.txt had wrong UIDs).
     os.makedirs(output_dir, exist_ok=True)
 
     for vol, entries in sorted(volumes.items()):
         outpath = os.path.join(output_dir, f"device_table_data-{vol}.txt")
-        # Build a dict keyed by path; later entries (user homes) overwrite
-        # earlier entries (static dirs).
+        # Build a dict keyed by path; later entries (data_dirs.txt) overwrite
+        # earlier entries (user homes).
         merged = {}
         for path, typ, mode, uid, gid in entries:
             merged[path] = (path, typ, mode, uid, gid)
