@@ -8,7 +8,7 @@
 upload          /                d  2770 65134 1010
 download        /                d  0770 65133 1010
 security        /                d  750  0     1005
-log             /                d  770  0     1006
+log             /                d  0750 1105  1014
 log             /nginx           d  770  0     1006
 project_a       /                d  755  0     0
 project_b       /                d  755  0     0
