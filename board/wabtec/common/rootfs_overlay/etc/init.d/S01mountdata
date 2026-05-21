@@ -5,13 +5,19 @@
 # Volume layout (REQ_CYBER_EDCU_016549, 2026-04-21 consensus):
 #   0: project_a      (static,  32 MB) -> /usr/DLC2ng if active bank
 #   1: project_b      (static,  32 MB) -> /usr/DLC2ng if active bank
-#   2: project_datafs (dynamic, 64 MB) -> declared in MR1, mounted in MR2 (FLM+CBM bind)
+#   2: project_datafs (dynamic, 64 MB) -> /data/project_datafs (+ bind flm)
 #   3: upload         (dynamic, 64 MB) -> /data/upload
 #   4: download       (dynamic, 48 MB) -> /data/download
 #   5: security       (dynamic,  4 MB) -> /data/security
 #   6: log            (dynamic, 16 MB) -> /data/log
 #   7: system_dyn     (dynamic,  4 MB) -> /data/system
 # Total: 264 MB.
+#
+# project_datafs holds persistent project data (FLM counters and faults
+# now; CBM and others later) that survive A/B bank switches. Sub-dirs of
+# project_datafs are bind-mounted to legacy paths for backward
+# compatibility with apps that hardcode them (e.g. VFlash hardcodes
+# /data/flm).
 
 # shellcheck disable=SC2034
 DAEMON="mountdata"
@@ -21,15 +27,22 @@ MTD_PART="mtd${MTD_NUM}"
 UBI_DEV="/dev/ubi0"
 UBI_IMAGE="/usr/share/data.ubi.gz"
 
-# Data volumes mounted in MR1: name:mountpoint:options
+# Data volumes: name:mountpoint:options
 # project_a/project_b are mounted by mount_project_overlay (A/B banking).
-# project_datafs is declared (allocated on flash) but bind-mounted in MR2.
 DATA_VOLUMES="
+project_datafs:/data/project_datafs:nosuid,nodev,noatime
 upload:/data/upload:nosuid,nodev,noexec,noatime
 download:/data/download:nosuid,nodev,noexec,noatime
 security:/data/security:nosuid,nodev,noexec,noatime
 log:/data/log:nosuid,nodev,noexec,noatime
 system_dyn:/data/system:nosuid,nodev,noexec,noatime
+"
+
+# Legacy-path bind mounts: source:target
+# Apps that hardcode the legacy path see their files in the right volume
+# without having to be migrated.
+PROJECT_DATAFS_BINDS="
+/data/project_datafs/flm:/data/flm
 "
 
 ###############################################################################
@@ -141,6 +154,37 @@ mount_data_volumes() {
 }
 
 ###############################################################################
+# Bind-mount sub-directories of project_datafs to their legacy paths
+###############################################################################
+
+mount_project_datafs_binds() {
+	for entry in ${PROJECT_DATAFS_BINDS}; do
+		src=$(echo "$entry" | cut -d: -f1)
+		dst=$(echo "$entry" | cut -d: -f2)
+
+		if mountpoint -q "$dst" 2>/dev/null; then
+			ts "$dst already bound, skipping"
+			continue
+		fi
+
+		if [ ! -d "$src" ]; then
+			ts "WARNING: bind source '$src' missing, skipping"
+			continue
+		fi
+
+		if [ ! -d "$dst" ]; then
+			ts "WARNING: bind target '$dst' missing in rootfs, skipping"
+			continue
+		fi
+
+		ts "Bind-mounting ${src} -> ${dst}"
+		if ! mount --bind "$src" "$dst"; then
+			ts "ERROR: bind mount failed for ${src} -> ${dst}"
+		fi
+	done
+}
+
+###############################################################################
 # A/B project overlay banking
 ###############################################################################
 
@@ -196,6 +240,12 @@ unmount_all() {
 	umount /usr/DLC2ng 2>/dev/null
 	umount /run/project_overlay 2>/dev/null
 
+	ts "Unmounting project_datafs binds..."
+	for entry in ${PROJECT_DATAFS_BINDS}; do
+		dst=$(echo "$entry" | cut -d: -f2)
+		umount "$dst" 2>/dev/null
+	done
+
 	ts "Unmounting data volumes..."
 	for entry in ${DATA_VOLUMES}; do
 		mnt=$(echo "$entry" | cut -d: -f2)
@@ -215,6 +265,7 @@ case "$1" in
 		ts "S01mountdata: start"
 		attach_ubi
 		mount_data_volumes
+		mount_project_datafs_binds
 		mount_project_overlay
 		ts "S01mountdata: done"
 		;;
