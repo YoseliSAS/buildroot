@@ -32,7 +32,7 @@ on the data MTD partition.
 |-----------------|-------|---------|-------------------------|----------------------------------------------|
 | project_a       | 32 MB | static  | (bank A, A/B switching) | Project overlay bank A                       |
 | project_b       | 32 MB | static  | (bank B, A/B switching) | Project overlay bank B                       |
-| project_datafs  | 64 MB | dynamic | (declared, MR2 binds)   | FLM + CBM + project shared data, MR2         |
+| project_datafs  | 64 MB | dynamic | /data/project_datafs    | FLM + CBM + project shared data (bound MR1)  |
 | upload          | 64 MB | dynamic | /data/upload            | FTP incoming                                 |
 | download        | 48 MB | dynamic | /data/download          | FTP outgoing                                 |
 | security        |  4 MB | dynamic | /data/security          | Security configuration                      |
@@ -48,10 +48,9 @@ on the data MTD partition.
   `/run/project_overlay`, then bind-mounted to `/usr/DLC2ng` (and any
   other top-level dir in MR2 via auto-discovered overlayfs).
 - `project_datafs` holds **FLM and CBM history** that must persist across
-  bank switches. Declared in MR1 (allocated on flash) but only mounted in
-  MR2. MR2 also adds bind compat `mount --bind /data/project_datafs/flm
-  /data/flm` and same for cbm, so applicative code keeps using the
-  legacy paths unchanged.
+  bank switches. Mounted at `/data/project_datafs` in MR1, with bind
+  compat `mount --bind /data/project_datafs/flm /data/flm` and same for
+  cbm, so applicative code keeps using the legacy paths unchanged.
 - `system_dyn` holds **dynamic system files** (not project data): future
   `resolv.conf` cache, PAM faillock, and on DLC2NG the persistent
   random-seed (busybox `seedrng`). DLC-Next does not need a persistent
@@ -62,7 +61,7 @@ on the data MTD partition.
 ## Differences vs the previous proposal
 
 - Volume `flm` of the WIP layout is dropped. FLM (and CBM) data live in
-  `project_datafs` from MR2 onward.
+  `project_datafs` from MR1 onward, bind-mounted to the legacy paths.
 - Volume `security` shrinks from 32 MB to 4 MB. Real security payload is
   ~68 KB (security_package + backup); 4 MB leaves headroom while
   respecting UBIFS overhead on small volumes (~620 KB minimum).
